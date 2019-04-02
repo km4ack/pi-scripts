@@ -1,0 +1,85 @@
+#!/bin/bash
+
+#script to list available SSID and mod wpa-supplicant
+#file to connect to new wifi hotspot
+#this script works in conjuction with autohotspot
+#http://www.raspberryconnect.com/network/item/330-raspberry-pi-auto-wifi-hotspot-switch-internet
+#km4ack 20190401
+#edited 20190402
+
+#check to make sure running as root
+WHO=$(whoami)
+if [ $WHO == "root" ]
+then
+echo
+else
+echo "Please run this script as root"
+exit
+fi
+
+# Generate List of Available SSIDs
+SSID_LIST () {
+clear
+echo
+echo
+echo
+echo "These hotspots are available"
+echo
+iwlist wlan0 scan | grep ESSID | sed 's/ESSID://g;s/"//g;s/^                    //g'
+#ask user about hotspots
+echo
+echo "1 to refresh the list, 2 to exit or"
+echo "Enter name of SSID would you like add?"
+read SSID
+if [ $SSID == "1" ]
+then
+SSID_LIST
+elif [ $SSID == "2" ]
+then
+echo "Goodbye"
+exit
+fi
+}
+
+#print list on screen
+SSID_LIST
+
+#get SSID password
+echo
+echo "What is the password for the hotspot?"
+read PASS
+
+#verify you want to add the hotspot
+echo
+echo "Do you want to add $SSID to your Wifi connection list? Enter y or n"
+read ANSWER
+
+#make the change to wpa_supplicant.conf
+if [ $ANSWER == "y" ]
+then
+echo "" >> /etc/wpa_supplicant/wpa_supplicant.conf
+echo "network={" >> /etc/wpa_supplicant/wpa_supplicant.conf
+echo "	ssid=\"$SSID\"" >> /etc/wpa_supplicant/wpa_supplicant.conf
+echo "	psk=\"$PASS\"" >> /etc/wpa_supplicant/wpa_supplicant.conf
+echo "	key_mgmt=WPA-PSK" >> /etc/wpa_supplicant/wpa_supplicant.conf
+echo "}" >> /etc/wpa_supplicant/wpa_supplicant.conf
+echo
+#add line to mylog.txt
+echo "/etc/wpa_supplicant/wpa_supplicant.conf updated via wificonnect script" >> $HOME/Documents/mylog.txt
+#provide user feedback
+echo "The information has been added to wpa_supplicant"
+#offer to run audohotspot script
+echo "Would you like to run  the auto hotspot script?"
+echo "And connect to $SSID"
+echo "Enter 1 for yes, 2 for no"
+read HOTSPOT
+	if [ $HOTSPOT -eq 1 ]
+	then
+	/usr/bin/autohotspot
+	fi
+else
+echo "OK! No mods were made"
+exit
+fi
+
+exit 0
