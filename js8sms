@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+#original script written by Jerry, K7AZJ
+#modded by KM4ACK 20190212
+
+#This script will ask for needed info to send to 
+#JS8Call to be transmitted for text message delivery
+#to a mobile phone.
+
+###################################################
+#           Start Original Script                 #
+###################################################
+#if [ "$#" == "0" ]; then
+#  echo "usage: js8sendsms phone_number message"
+#  echo "   example: js8sendsms 1112223456 hello"
+#  exit 0
+#fi
+
+#phone=$1
+#shift
+#msg="$*"
+###################################################
+#             End Original Script                 #
+###################################################
+#             Mods below by KM4ACK                #
+###################################################
+echo What is the phone number to text?
+read phone
+echo What do you want the text to say?
+read msg
+
+value="\"@ALLCALL APRS::SMSGTE   :@${phone} ${msg}\""
+echo sending $value
+
+printf '{"params": {}, "type": "TX.SET_TEXT", "value": %s}\n' "${value}" | nc -l -u -w 10 2237
+echo
+echo
+echo
+echo Your message is ready to send
+echo Go to JS8Call and press the send button
