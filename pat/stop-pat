@@ -1,0 +1,9 @@
+#!/bin/bash
+
+#this sccipt kills pat and piardopc
+#and piARDOP_GUI
+#20181216 km4ack
+
+sudo killall piardopc
+sudo killall pat
+sudo killall piARDOP_GUI
