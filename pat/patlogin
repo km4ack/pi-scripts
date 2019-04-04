@@ -10,6 +10,8 @@
 
 #km4ack 20190404
 
+#stop pat so we can change the config file
+sudo killall pat
 
 FIG=$HOME/.wl2k/config.json
 
