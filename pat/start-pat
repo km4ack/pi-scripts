@@ -1,0 +1,49 @@
+#!/bin/bash
+
+#this script will start piardopc,piARDOP_GUI, & pat
+#server.
+#20181216 km4ack
+#20190404 last edit
+
+#####################################################
+#-----------------CHANGE NOTES----------------------#
+#####################################################
+
+#20181216 original script written
+#20190226 added open chrome browser to display inbox
+#20190404 added variable for PORT
+####################################################
+#-----------------END NOTES------------------------#
+####################################################
+
+#path to ardop
+APATH=$HOME/ardop
+#get usb card number for sound card
+#won't work with multiple sound cards plugged in.
+#will need to mod if using multiple sound cards.
+CARD=$(arecord -l | grep "USB Audio" | awk '{print $2$8}' | sed 's/:/,/;s/://')
+
+#stop programs that might interfere with pat running
+sudo killall piardopc
+sudo killall pat
+sudo killall js8call
+sleep 5
+
+#start piardopc
+$APATH/./piardopc 8515 plughw:$CARD plughw:$CARD  &
+
+#start ardop-gui
+export DISPLAY=:0 && $APATH/ardop/piARDOP_GUI &
+
+sleep 2
+
+#start pat
+pat http &
+
+sleep 1
+
+#get port number from config.json
+PORT=$(grep -w "http_addr" $HOME/.wl2k/config.json | sed 's/.*: //;s/.*://;s/",//')
+
+#open inbox in chrome browser window
+export DISPLAY=:0 && chromium-browser --app=http://127.0.0.1:$PORT
