@@ -1,0 +1,65 @@
+#!/bin/bash
+
+#script for logging in  operator for pat
+#will mod ~/.wl2k/config.json file
+#this will only change
+#operator, callsign, grid, and http address
+#http address is set on port 8080 by default
+#but can be changed below. just change
+#PORT=8080 to the port number you wish to use.
+
+#km4ack 20190404
+
+
+FIG=$HOME/.wl2k/config.json
+
+#HTTP port number
+#default is 8080
+PORT=8080
+
+
+QUESTIONS () {
+clear
+echo
+echo
+echo
+echo "What is your callsign"
+read CALLSIGN
+if [ -z "$CALLSIGN" ]
+then 
+QUESTIONS
+fi
+echo "What is your winlink password?"
+read PASS
+echo "What is your grid square?"
+read GRID
+echo
+echo
+echo
+echo "Your callsign is:$CALLSIGN"
+echo "Your winlink password is:$PASS"
+echo "Your grid is:$GRID"
+echo
+echo "Is this correct? y or n"
+read ANSWER
+if [ $ANSWER == 'y' ]
+then
+#set callsign
+sed -i "s/\"mycall\": \".*\",/\"mycall\": \"$CALLSIGN\",/" $FIG
+#set password
+sed -i "s/\"secure_login_password\": \".*\",/\"secure_login_password\": \"$PASS\",/" $FIG
+#set locator
+sed -i "s/\"locator\": \".*\",/\"locator\": \"$GRID\",/" $FIG
+#Change localhost to 0.0.0.0
+sed -i "s/\"http_addr\": \".*\",/\"http_addr\": \"0.0.0.0:$PORT\",/" $FIG
+echo "Config file has been updated"
+fi
+}
+
+QUESTIONS
+
+if [ $ANSWER == 'n' ]
+then
+QUESTIONS
+fi
+
