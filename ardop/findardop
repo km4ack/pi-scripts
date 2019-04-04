@@ -15,10 +15,10 @@
 MYPATH=~/Documents/ardop-list/
 
 #Path for getardoplist script
-SCRIPT_PATH=/usr/local/bin/getardoplist
+SCRIPT_PATH=$HOME/ardop/getardoplist
 
 #path for map pdf
-MAP_PATH=~/Documents/grid-map.pdf
+MAP_PATH=$HOME/ardop/grid-map.pdf
 
 #Select the pdf app on your system
 #default is evince
