@@ -1,0 +1,106 @@
+#!/bin/bash
+
+#Script to install and setup Pat
+#and the km4ack pat menu system
+#km4ack 20190404
+
+PAT=$(dpkg --get-selections | grep -w "pat")
+
+#remove old menu files so we get latest revisions
+rm $HOME/ardop/start-pat
+rm $HOME/ardop/stop-pat
+rm $HOME/ardop/findardop
+rm $HOME/ardop/getardoplist
+rm $HOME/ardop/grid-map.pdf
+rm $HOME/ardop/patmenu
+
+#check if pat is install & offer to install if needed
+if [ -z "$PAT" ]
+then
+echo "Pat is not installed"
+echo "Would you like to install it now? y/n"
+read PATANSWER
+	if [ $PATANSWER == 'y' ]
+	then
+	cd $HOME/Downloads
+	wget https://github.com/la5nta/pat/releases/download/v0.6.1/pat_0.6.1_linux_armhf.deb
+	sudo dpkg -i pat_0.6.1_linux_armhf.deb
+	else
+	echo "No point to continue without pat installed"
+	exit
+	fi
+else
+echo "Pat was found on this system"
+fi
+
+#get piardopc and piardop_gui
+mkdir -p $HOME/ardop/
+#check if ardop & ardop_gui already exist in ardop dir
+if [ ! -f $HOME/ardop/piardopc ]; then
+    echo "piardopc not found in directory"
+    echo "Downloading now, please standby"
+    cd $HOME/ardop/
+    wget http://www.cantab.net/users/john.wiseman/Downloads/Beta/piardopc
+    sudo chmod +x piardopc
+else
+echo "Piardopc was found on this system"
+fi
+
+if [ ! -f $HOME/ardop/piARDOP_GUI ]; then
+    echo "piARDOP_GUI not found in directory"
+    echo "Downloading now, please standby"
+    cd $HOME/ardop/
+    wget https://www.cantab.net/users/john.wiseman/Downloads/Beta/piARDOP_GUI
+    sudo chmod +x piARDOP_GUI
+else
+echo "piARDOP_GUI was found on this system"
+fi
+
+#get km4ack scripts & menu system
+#list of files:
+#patmenu,patlogin,start-pat,stop-pat,find-ardop,getardoplist,grid-map.pdf
+
+cd $HOME/ardop
+#get pat menu & make exec
+wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/pat/patmenu
+sudo chmod +x patmenu
+#get pat login script & make exec
+https://raw.githubusercontent.com/km4ack/pi-scripts/master/pat/patlogin
+sudo chmod +x patlogin
+#get start-pat script & make exec
+wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/pat/start-pat
+sudo chmod +x start-pat
+#get stop-pat script & make exec
+wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/pat/stop-pat
+sudo chmod +x stop-pat
+#get find ardop & make exec
+wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/ardop/findardop
+sudo chmod +x findardop
+#get getardoplist & make exec
+wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/ardop/getardoplist
+sudo chmod +x getardoplist
+#get gridmap
+wget https://github.com/km4ack/pi-scripts/raw/master/ardop/grid-map.pdf
+#create symlink for menu
+#sudo ln -sf $HOME/ardop/patmenu /usr/local/bin/patmenu
+
+#run initial getardoplist
+echo "Please wait while the latest"
+echo "Gateway list is downloaded"
+$HOME/ardop/getardoplist
+
+
+#set getardoplist in cron
+crontab -l > $HOME/ardop/crontemp.txt
+echo "00 12 * * * $HOME/ardop/getardoplist" > $HOME/ardop/crontemp.txt
+
+#check to see if evince is installed
+EV=$(dpkg --get-selections | grep -w "evince")
+if [ -z "$EV" ]
+then
+#install evince pdf reader
+sudo apt-get install -y evince
+fi
+
+echo;echo;echo;echo
+echo "Start the menu with 'patmenu' from the command line"
