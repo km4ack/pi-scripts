@@ -15,6 +15,7 @@ rm $HOME/ardop/findardop
 rm $HOME/ardop/getardoplist
 rm $HOME/ardop/grid-map.pdf
 rm $HOME/ardop/patmenu
+rm $HOME/ardop/patlogin
 fi
 
 
