@@ -87,7 +87,7 @@ sudo chmod +x getardoplist
 #get gridmap
 wget https://github.com/km4ack/pi-scripts/raw/master/ardop/grid-map.pdf
 #create symlink for menu
-#sudo ln -sf $HOME/ardop/patmenu /usr/local/bin/patmenu
+sudo ln -sf $HOME/ardop/patmenu /usr/local/bin/patmenu
 
 if [ -f $HOME/Documents/ardop-list/ardoplist.txt ]
 then
