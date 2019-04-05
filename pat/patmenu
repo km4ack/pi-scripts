@@ -41,7 +41,7 @@ if [[ -z "$firstname" ]]; then
 else
         if [ $firstname == 'Pat-Login' ]
         then
-        lxterminal -e $HOME/ardop/pat-login
+        lxterminal -e $HOME/ardop/patlogin
         fi
 fi
 
