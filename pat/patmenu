@@ -26,13 +26,10 @@ else
 	if [ $firstname == 'Quit' ]
 	then
 	clear
-	echo
-	echo
-	echo
+	echo;echo;echo
 	echo "If you enjoy this menu system please"
 	echo "consider donating"
-	echo
-	echo
+	echo;echo
 	echo "Hold control key while clicking link"
 	echo "https://www.paypal.me/km4ack/5usd"
 	exit
