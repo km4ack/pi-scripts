@@ -33,7 +33,7 @@ sleep 5
 $APATH/./piardopc 8515 plughw:$CARD plughw:$CARD  &
 
 #start ardop-gui
-export DISPLAY=:0 && $APATH/ardop/piARDOP_GUI &
+export DISPLAY=:0 && $APATH/piARDOP_GUI &
 
 sleep 2
 
