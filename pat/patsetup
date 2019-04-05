@@ -65,7 +65,7 @@ cd $HOME/ardop
 wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/pat/patmenu
 sudo chmod +x patmenu
 #get pat login script & make exec
-https://raw.githubusercontent.com/km4ack/pi-scripts/master/pat/patlogin
+wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/pat/patlogin
 sudo chmod +x patlogin
 #get start-pat script & make exec
 wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/pat/start-pat
