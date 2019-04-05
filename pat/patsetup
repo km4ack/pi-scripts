@@ -93,6 +93,9 @@ $HOME/ardop/getardoplist
 #set getardoplist in cron
 crontab -l > $HOME/ardop/crontemp.txt
 echo "00 12 * * * $HOME/ardop/getardoplist" > $HOME/ardop/crontemp.txt
+#line below commented out during testing
+#crontab $HOME/ardop/crontemp.txt
+rm $HOME/ardop/crontemp.txt
 
 #check to see if evince is installed
 EV=$(dpkg --get-selections | grep -w "evince")
