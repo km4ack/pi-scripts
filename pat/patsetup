@@ -84,10 +84,16 @@ wget https://github.com/km4ack/pi-scripts/raw/master/ardop/grid-map.pdf
 #create symlink for menu
 #sudo ln -sf $HOME/ardop/patmenu /usr/local/bin/patmenu
 
+if [ -f $HOME/Documents/ardop-list/ardoplist.txt ]
+then
+    echo "ARDOP list exist. No need to download"
+else
 #run initial getardoplist
 echo "Please wait while the latest"
 echo "Gateway list is downloaded"
 $HOME/ardop/getardoplist
+fi
+
 
 
 #set getardoplist in cron
