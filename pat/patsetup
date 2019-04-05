@@ -6,6 +6,8 @@
 
 PAT=$(dpkg --get-selections | grep -w "pat")
 
+if [ -f $HOME/ardop/patmenu ]
+then
 #remove old menu files so we get latest revisions
 rm $HOME/ardop/start-pat
 rm $HOME/ardop/stop-pat
@@ -13,6 +15,8 @@ rm $HOME/ardop/findardop
 rm $HOME/ardop/getardoplist
 rm $HOME/ardop/grid-map.pdf
 rm $HOME/ardop/patmenu
+fi
+
 
 #check if pat is install & offer to install if needed
 if [ -z "$PAT" ]
