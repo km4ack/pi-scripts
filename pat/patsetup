@@ -116,5 +116,15 @@ then
 sudo apt-get install -y evince
 fi
 
+#create config file for ARDOP_GUI
+if [ -f $HOME/.config/G8BPQ/ARDOP_GUI.conf ]
+then
+    echo "ARDOP_GUI Config exists"
+else
+echo "[General]" >> $HOME/.config/G8BPQ/ARDOP_GUI.conf
+echo "Host=local" >> $HOME/.config/G8BPQ/ARDOP_GUI.conf
+echo "Port=8515" >> $HOME/.config/G8BPQ/ARDOP_GUI.conf
+fi
+
 echo;echo;echo;echo
 echo "Start the menu with 'patmenu' from the command line"
