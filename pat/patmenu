@@ -53,7 +53,7 @@ if [[ -z "$firstname" ]]; then
 else
         if [ $firstname == 'Start-Pat-Ardop' ]
         then
-	echo "Pat Ardop will start in 10 seconds."
+	echo "Pat Ardop will start in 5 seconds."
 	echo "Press ctl+c to abort"
 	sleep 5
         lxterminal -e $HOME/ardop/start-pat
