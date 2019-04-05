@@ -127,4 +127,8 @@ echo "Port=8515" >> $HOME/.config/G8BPQ/ARDOP_GUI.conf
 fi
 
 echo;echo;echo;echo
-echo "Start the menu with 'patmenu' from the command line"
+echo "#############################################################"
+echo "#                                                           #"
+echo "#    Start the menu with 'patmenu' from the command line    #"
+echo "#                                                           #"
+echo "#############################################################"
