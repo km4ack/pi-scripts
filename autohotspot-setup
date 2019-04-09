@@ -8,8 +8,8 @@
 apt-get update
 
 #install hostapd, dnsmasq
-#apt-get install -y hostapd
-#apt-get install -y dnsmasq
+apt-get install -y hostapd
+apt-get install -y dnsmasq
 
 #stop both services
 #systemctl disable hostapd
