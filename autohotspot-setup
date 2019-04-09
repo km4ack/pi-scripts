@@ -35,7 +35,7 @@ wifipass
 
 cd $HOME/temp
 
-wget http://www.raspberryconnect.com/images/autohotspotN/autohotspotn-95-4/hostapd.txt
+wget http://www.raspberryconnect.com/images/Autohotspot/autohotspot-95-4/hostapd.txt
 
 #set new hotspot passwd
 sed -i "s/wpa_passphrase=1234567890/wpa_passphrase=$wifipasswd/" $HOME/temp/hostapd.txt
