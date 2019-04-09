@@ -45,7 +45,7 @@ sed -i 's/country_code=GB/country_code=US/' $HOME/temp/hostapd.txt
 #move hostapd to correct location
 mv $HOME/temp/hostapd.txt /etc/hostapd/hostapd.conf
 
-sed -i s'/#DAEMON_CONF=""/DAEMON_CONF="/etc/hostapd/hostapd.conf"/' /etc/default/hostapd
+sed -i s'/#DAEMON_CONF=""/DAEMON_CONF="\/etc\/hostapd\/hostapd.conf"/' /etc/default/hostapd
 sed -i s'/DAEMON_OPTS=""/#DAEMON_OPTS=""/' /etc/default/hostapd
 
 #add needed info to dnsmasq.conf
@@ -88,6 +88,7 @@ fi
 cd $HOME/temp
 wget http://www.raspberryconnect.com/images/autohotspotN/autohotspotn-95-4/autohotspotN.txt
 mv autohotspotN.txt /usr/bin/autohotspotN
+chmod +x /usr/bin/autohotspotN
 
 #get ham's wifi credentials
 echo "What wifi SSID would you like to connect to?"
