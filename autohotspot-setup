@@ -49,26 +49,22 @@ sed -i s'/#DAEMON_CONF=""/DAEMON_CONF="\/etc\/hostapd\/hostapd.conf"/' /etc/defa
 sed -i s'/DAEMON_OPTS=""/#DAEMON_OPTS=""/' /etc/default/hostapd
 
 #add needed info to dnsmasq.conf
-echo "#AutoHotspotN config" >> /etc/dnsmasq.conf
+echo "#AutoHotspot config" >> /etc/dnsmasq.conf
+echo "no-resolv" >> /etc/dnsmasq.conf
 echo "interface=wlan0" >> /etc/dnsmasq.conf
-echo "bind-dynamic" >> /etc/dnsmasq.conf
-echo "server=8.8.8.8" >> /etc/dnsmasq.conf
-echo "domain-needed" >> /etc/dnsmasq.conf
-echo "bogus-priv" >> /etc/dnsmasq.conf
-echo "dhcp-range=10.10.10.100,10.10.10.200,12h" >> /etc/dnsmasq.conf
+echo "bind-interfaces" >> /etc/dnsmasq.conf
+echo "dhcp-range=10.3.141.10,10.3.141.100,12h" >> /etc/dnsmasq.conf
 
 mv /etc/network/interfaces /etc/network/interfaces.org
 
 echo "source-directory /etc/network/interfaces.d" >> /etc/network/interfaces
 
-#setup forwarding
-sed -i 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
 
 echo "nohook wpa_supplicant" >> /etc/dhcpcd.conf
 
 cd $HOME/temp
 
-wget http://www.raspberryconnect.com/images/autohotspotN/autohotspotn-95-4/autohotspot-service.txt
+wget http://www.raspberryconnect.com/images/Autohotspot/autohotspot-95-4/autohotspot-service.txt
 
 #create autohotspot service file
 mv autohotspot-service.txt /etc/systemd/system/autohotspot.service
@@ -86,9 +82,9 @@ fi
 
 #install autohotspot script
 cd $HOME/temp
-wget http://www.raspberryconnect.com/images/autohotspotN/autohotspotn-95-4/autohotspotN.txt
-mv autohotspotN.txt /usr/bin/autohotspotN
-chmod +x /usr/bin/autohotspotN
+wget http://www.raspberryconnect.com/images/Autohotspot/autohotspot-95-4/autohotspot.txt
+mv autohotspot.txt /usr/bin/autohotspot
+chmod +x /usr/bin/autohotspot
 
 #get ham's wifi credentials
 echo "What wifi SSID would you like to connect to?"
