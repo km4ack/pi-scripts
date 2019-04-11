@@ -92,7 +92,7 @@ fi
 #install autohotspot script
 cd $HOME/temp
 wget http://www.raspberryconnect.com/images/autohotspotN/autohotspotn-95-4/autohotspotN.txt
-mv autohotspot.txt /usr/bin/autohotspotN
+mv autohotspotN.txt /usr/bin/autohotspotN
 chmod +x /usr/bin/autohotspotN
 
 #shackwifi function
