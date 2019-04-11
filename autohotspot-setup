@@ -12,8 +12,8 @@ apt-get install -y hostapd
 apt-get install -y dnsmasq
 
 #stop both services
-#systemctl disable hostapd
-#systemctl disable dnsmasq
+systemctl disable hostapd
+systemctl disable dnsmasq
 
 mkdir -p $HOME/temp
 
