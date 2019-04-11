@@ -19,7 +19,9 @@ mkdir -p $HOME/temp
 
 wifipass () {
 echo;echo;echo
-read -p "Enter password to used with new hotspot " wifipasswd
+echo "This password will be used to connect to the pi"
+echo "when the pi is in hotspot mode"
+read -p "Enter password to use with new hotspot " wifipasswd
 echo;echo
 echo "You entered $wifipasswd"
 read -p "Is this correct? y/n " wifians
@@ -86,6 +88,8 @@ wget http://www.raspberryconnect.com/images/Autohotspot/autohotspot-95-4/autohot
 mv autohotspot.txt /usr/bin/autohotspot
 chmod +x /usr/bin/autohotspot
 
+#shackwifi function
+shackwifi1 () {
 #get ham's wifi credentials
 echo "What wifi SSID would you like to connect to?"
 echo "This is the one already in your shack"
@@ -93,14 +97,41 @@ read shackwifi
 echo "What is the password for this wifi?"
 read shackpass
 
+echo;echo;
+echo "Your shack's current wifi is"
+echo "wifi $shackwifi"
+echo "passwd $shackpass"
+echo "Is this correct? y/n"
+read shackans
+If [ $shackans == "y" ]
+then
+echo
+else
+shackwifi1
+fi
+}
 
+#run shackwifi function
+shackwifi1
+
+#add shack wifi to wpa_supplicant.conf
 echo "network={" >> /etc/wpa_supplicant/wpa_supplicant.conf
 echo "ssid=\"$shackwifi\"" >> /etc/wpa_supplicant/wpa_supplicant.conf
 echo "psk=\"$shackpass\"" >> /etc/wpa_supplicant/wpa_supplicant.conf
 echo "key_mgmt=WPA-PSK" >> /etc/wpa_supplicant/wpa_supplicant.conf
 echo "}" >> /etc/wpa_supplicant/wpa_supplicant.conf
 
-#attempt to remove hostapd masked error on first run of hotspot
+#remove hostapd masked error on first run of hotspot
 systemctl unmask hostapd
+
+echo;echo;echo
+echo "A reboot is required to complete the setup"
+read -p "Would you like to reboot now? y/n " rebot
+if [ $rebot == "y" ]
+then 
+reboot
+else
+echo "Please remember to reboot soon"
+fi
 
 #need to setup cron job but can't do here b/c running as root
