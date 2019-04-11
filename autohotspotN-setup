@@ -74,7 +74,7 @@ sed 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
 
 cd $HOME/temp
 
-wget http://www.raspberryconnect.com/images/Autohotspot/autohotspot-95-4/autohotspot-service.txt
+wget http://www.raspberryconnect.com/images/autohotspotN/autohotspotn-95-4/autohotspot-service.txt
 
 #create autohotspot service file
 mv autohotspot-service.txt /etc/systemd/system/autohotspot.service
