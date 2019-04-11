@@ -100,4 +100,7 @@ echo "psk=\"$shackpass\"" >> /etc/wpa_supplicant/wpa_supplicant.conf
 echo "key_mgmt=WPA-PSK" >> /etc/wpa_supplicant/wpa_supplicant.conf
 echo "}" >> /etc/wpa_supplicant/wpa_supplicant.conf
 
+#attempt to remove hostapd masked error on first run of hotspot
+systemctl unmask hostapd
+
 #need to setup cron job but can't do here b/c running as root
