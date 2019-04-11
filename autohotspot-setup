@@ -103,7 +103,7 @@ echo "wifi $shackwifi"
 echo "passwd $shackpass"
 echo "Is this correct? y/n"
 read shackans
-If [ $shackans == "y" ]
+if [ $shackans == "y" ]
 then
 echo
 else
