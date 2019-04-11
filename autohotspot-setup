@@ -53,7 +53,7 @@ echo "#AutoHotspot config" >> /etc/dnsmasq.conf
 echo "no-resolv" >> /etc/dnsmasq.conf
 echo "interface=wlan0" >> /etc/dnsmasq.conf
 echo "bind-interfaces" >> /etc/dnsmasq.conf
-echo "dhcp-range=10.3.141.10,10.3.141.100,12h" >> /etc/dnsmasq.conf
+echo "dhcp-range=10.0.0.50,10.0.0.150,12h" >> /etc/dnsmasq.conf
 
 mv /etc/network/interfaces /etc/network/interfaces.org
 
