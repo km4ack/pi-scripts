@@ -59,7 +59,8 @@ echo "bind-dynamic" >> /etc/dnsmasq.conf
 echo "server=8.8.8.8" >> /etc/dnsmasq.conf
 echo "domain-needed" >> /etc/dnsmasq.conf
 echo "bogus-priv" >> /etc/dnsmasq.conf
-echo "dhcp-range=192.168.50.150,192.168.50.200,255.255.255.0,12h" >> /etc/dnsmasq.conf
+#echo "dhcp-range=192.168.50.150,192.168.50.200,255.255.255.0,12h" >> /etc/dnsmasq.conf
+echo "dhcp-range=10.10.10.150,10.10.10.200,255.255.255.0,12h" >> /etc/dnsmasq.conf
 
 mv /etc/network/interfaces /etc/network/interfaces.org
 
@@ -92,6 +93,8 @@ fi
 #install autohotspot script
 cd $HOME/temp
 wget http://www.raspberryconnect.com/images/autohotspotN/autohotspotn-95-4/autohotspotN.txt
+#mod ip address for our custom setup
+sed -i 's/192.168.50.5/10.10.10.10/'
 mv autohotspotN.txt /usr/bin/autohotspotN
 chmod +x /usr/bin/autohotspotN
 
