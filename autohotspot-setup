@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #install autohotspot from raspberrypiconnect.com
-#http://www.raspberryconnect.com/network/item/330-raspberry-pi-auto-wifi-hotspot-switch-internet
+#http://www.raspberryconnect.com/network/item/331-raspberry-pi-auto-wifi-hotspot-switch-no-internet-routing
 #km4ack 20190409
 
 #update packages
