@@ -59,8 +59,10 @@ echo "bind-dynamic" >> /etc/dnsmasq.conf
 echo "server=8.8.8.8" >> /etc/dnsmasq.conf
 echo "domain-needed" >> /etc/dnsmasq.conf
 echo "bogus-priv" >> /etc/dnsmasq.conf
-#echo "dhcp-range=192.168.50.150,192.168.50.200,255.255.255.0,12h" >> /etc/dnsmasq.conf
 echo "dhcp-range=10.10.10.150,10.10.10.200,255.255.255.0,12h" >> /etc/dnsmasq.conf
+echo "#Set up redirect for email.com" >> /etc/dnsmasq.conf
+echo "dhcp-option=3,10.10.10.10" >> /etc/dnsmasq.conf
+echo "address=/email.com/10.10.10.10" >> /etc/dnsmasq.conf
 
 mv /etc/network/interfaces /etc/network/interfaces.org
 
