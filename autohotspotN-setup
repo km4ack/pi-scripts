@@ -139,5 +139,4 @@ systemctl unmask hostapd
 echo;echo;echo
 echo "A reboot is required to complete the setup"
 echo "Wifi/AutoHotSpot will not work until reboot"
-
-#need to setup cron job but can't do here b/c running as root
+echo "Ignore this IF you are using the EES quickinstall"
