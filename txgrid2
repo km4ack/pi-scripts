@@ -3,7 +3,7 @@
 #script to auto transmit your grid in js8call
 #be sure js8 is running before using this script
 #this script should be used in conjunction with 
-#the ruby script setgrid2
+#the ruby script setgrid2 https://gist.github.com/km4ack/1de2d977b02c75c32b20d6d592f5c877
 #to automate the process use a cronjob
 #HINT: */10 * * * * /paht/to/file/txgrid2
 #will run the script every 10 minutes
