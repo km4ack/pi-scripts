@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+#script to auto transmit your grid in js8call
+#be sure js8 is running before using this script
+#this script should be used in conjunction with 
+#the ruby script setgrid2
+#to automate the process use a cronjob
+#HINT: */10 * * * * /paht/to/file/txgrid2
+#will run the script every 10 minutes
+#20190420 km4ack
+
+
+value="\"@ALLCALL GRID <MYGRID12>\""
+
+printf '{"params": {}, "type": "TX.SEND_MESSAGE", "value": %s}\n' "${value}" | nc -l -u -w 10 2237
