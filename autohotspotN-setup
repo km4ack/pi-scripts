@@ -7,7 +7,7 @@
 #km4ack 20190409
 
 #update packages
-apt-get update
+#apt-get update
 
 #install hostapd, dnsmasq
 apt-get install -y hostapd
