@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+#km4ack 20190128
+#script used to transmit your grid
+#in js8call
+#can be run as a cron job. Hint:
+#*/10 * * * * /path/to/file/./txgrid
+
+
+
+value="\"@ALLCALL GRID <MYGRID12>\""
+echo sending $value
+printf '{"params": {}, "type": "TX.SEND_MESSAGE", "value": %s}\n' "${value}" | nc -l -u -w 10 2237
