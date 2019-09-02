@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+# send aprs message to a callsign
+# this uses the following format
+# APRS::<callsign padded on the right side with spaces to 9>:message{sequence}
+# the above string is sent via JS8Call via @ALLCALL
+
+echo What is callsign message is going to? Include SSID
+read cs
+echo What is the message? Keep it brief.
+read msg
+echo What is the sequence number?
+read seq
+echo
+echo Go to JS8Call to transmit the message when this window closes.
+sleep 2
+echo 
+echo
+
+
+value=$(printf '\"@ALLCALL APRS::%-9s:%s{%s}\"' ${cs} "${msg}" ${seq})
+printf 'sending %s\n' "$value"    # beware: can't use echo here
+
+printf '{"params": {}, "type": "TX.SET_TEXT", "value": %s}\n' "${value}" | nc -l -u -w 10 2237
