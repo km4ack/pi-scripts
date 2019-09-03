@@ -4,6 +4,8 @@
 # this uses the following format
 # APRS::<callsign padded on the right side with spaces to 9>:message{sequence}
 # the above string is sent via JS8Call via @ALLCALL
+# credit to Jerry K7AZJ for creating the script
+# modded by km4ack 20190403
 
 echo What is callsign message is going to? Include SSID
 read cs
