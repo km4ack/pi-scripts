@@ -23,6 +23,8 @@ wifipass () {
 echo;echo;echo
 echo "This password will be used to connect to the pi"
 echo "when the pi is in hotspot mode"
+#credit next line to Ray, N3HYM
+echo "Password should be between 8-63 characters"
 read -p "Enter password to use with new hotspot " wifipasswd
 echo;echo
 echo "You entered $wifipasswd"
