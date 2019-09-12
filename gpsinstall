@@ -6,18 +6,18 @@
 #km4ack 20190911
 
 echo "installing a few needed packages"
-#apt-get install -y gpsd gpsd-clients python-gps chrony
+apt-get install -y gpsd gpsd-clients python-gps chrony
 
 #backup gpsd file
-#mv /etc/default/gpsd /etc/default/gpsd.org
+mv /etc/default/gpsd /etc/default/gpsd.org
 
 #download gpsd file
-#cd /etc/default/
-#wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/gpsd
+cd /etc/default/
+wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/gpsd
 
-#echo "refclock SHM 0 offset 0.5 delay 0.2 refid NMEA" >> /etc/chrony/chrony.conf
+echo "refclock SHM 0 offset 0.5 delay 0.2 refid NMEA" >> /etc/chrony/chrony.conf
 
-#download instructions to desktop
+#download instructions to pi's desktop
 cd /home/pi/Desktop
 wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/gps-instruction
 
