@@ -2,8 +2,10 @@
 
 #script to install GPS Dongle for Rasperry Pi 3
 #Written on pi3 running stretch
-#Working on Buster install since things changed with Buster
+#Things changed in Buster. Working on a solution.
+#Currently not confirmed working with Buster
 #km4ack 20190911
+#Last Edit km4ack 20190912
 
 #check to see if running buster
 BUSTER=$(cat /etc/os-release | grep -i buster)
