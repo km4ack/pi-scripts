@@ -64,8 +64,6 @@ echo "	psk=\"$PASS\"" >> /etc/wpa_supplicant/wpa_supplicant.conf
 echo "	key_mgmt=WPA-PSK" >> /etc/wpa_supplicant/wpa_supplicant.conf
 echo "}" >> /etc/wpa_supplicant/wpa_supplicant.conf
 echo
-#add line to mylog.txt
-echo "/etc/wpa_supplicant/wpa_supplicant.conf updated via wificonnect script" >> $HOME/Documents/mylog.txt
 #provide user feedback
 echo "The information has been added to wpa_supplicant"
 #offer to run audohotspot script
@@ -75,7 +73,7 @@ echo "Enter 1 for yes, 2 for no"
 read HOTSPOT
 	if [ $HOTSPOT -eq 1 ]
 	then
-	/usr/bin/autohotspot
+	/usr/bin/autohotspotN
 	fi
 else
 echo "OK! No mods were made"
