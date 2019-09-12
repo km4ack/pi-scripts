@@ -1,0 +1,23 @@
+#This file will be placed on the users desktop
+#When running the gpsinstall script
+#km4ack 20190912
+
+#####################################################
+
+Use the following two commands by opening a terminal
+window and running the following two commands:
+
+systemctl is-active gpsd
+systemctl is-active chronyd
+
+Both should show. “active”
+
+
+To see a graphical representation of the GPS run
+
+xgps
+
+
+73, de KM4ACK 
+http://youtube.com/km4ack
+km4ack@arrl.net
