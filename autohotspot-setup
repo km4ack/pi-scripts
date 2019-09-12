@@ -3,6 +3,14 @@
 #install autohotspot from raspberrypiconnect.com
 #http://www.raspberryconnect.com/network/item/331-raspberry-pi-auto-wifi-hotspot-switch-no-internet-routing
 #km4ack 20190409
+#km4ack 20190912
+
+
+echo ""
+echo "please use autohotspotN script instead of this one"
+echo "download the correct script by running the command below"
+echo "wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/autohotspotN-setup"
+exit 0
 
 #update packages
 apt-get update
