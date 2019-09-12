@@ -2,7 +2,7 @@
 
 #script to install GPS Dongle for Rasperry Pi 3
 #Written on pi3 running stretch
-#WILL NOT WORK ON BUSTER!!
+#Working on Buster install since things changed with Buster
 #km4ack 20190911
 
 #check to see if running buster
@@ -54,5 +54,20 @@ echo "GPS won't work until reboot"
 exit 0
 fi
 else
-echo "This script will not work on Buster"
+#install section for Buster
+#echo "This script will not work on Buster"
+apt-get install -y gpsd gpsd-clients python-gps chrony
+echo "refclock SHM 0 offset 0.5 delay 0.2 refid NMEA" >> /etc/chrony/chrony.conf
+echo "Reboot is need to complete installation"
+echo "Would you like to reboot now? y/n"
+read ANSW1
+
+    if [ $ANSW1 = "y" ]
+    then
+    reboot
+    else
+    echo "GPS won't work until reboot"
+    exit 0
+    fi
+
 fi
