@@ -2,7 +2,7 @@
 
 #script to install GPS Dongle for Rasperry Pi 3
 #Written on pi3 running stretch
-#should work with other but has not been tested
+#WILL NOT WORK ON BUSTER!!
 #km4ack 20190911
 
 echo "installing a few needed packages"
