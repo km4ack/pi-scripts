@@ -8,15 +8,9 @@
 #However, the time is NOT being pulled from the GPS and passed to 
 #the system.
 #km4ack 20190911
-#Last Edit km4ack 20190912
+#Last Edit km4ack 20190920
 
-#check to see if running buster
-BUSTER=$(cat /etc/os-release | grep -i buster)
-
-if [ -z "$BUSTER" ]
-then
-
-
+#install needed packages
 echo "installing a few needed packages"
 apt-get install -y gpsd gpsd-clients python-gps chrony
 
@@ -24,29 +18,18 @@ apt-get install -y gpsd gpsd-clients python-gps chrony
 mv /etc/default/gpsd /etc/default/gpsd.org
 
 #download gpsd file
-cd /etc/default/
-wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/gpsd
+wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/gpsd -P /etc/default/
 
 echo "refclock SHM 0 offset 0.5 delay 0.2 refid NMEA" >> /etc/chrony/chrony.conf
 
 #download instructions to pi's desktop
-cd /home/pi/Desktop
-wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/gps-instruction
+wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/gps-instruction -P home/pi/Desktop
 
 echo "";echo ""; echo ""
-echo "##########################################"
-echo "###          IMPORTANT NOTES           ###"
-echo "##########################################"
-echo "To check the status of the GPS"
-echo "run the following commands after reboot"
-echo "systemctl is-active gpsd"
-echo "systemctl is-active chronyd"
-echo "Both command should return ACTIVE"
-echo "";echo ""
-echo "Run xgps from terminal to see a graphical"
-echo "representation of the GPS unit"
-echo "";echo ""
-echo "##########################################"
+echo "#############################################"
+echo "#            GPS Instructions               #"
+echo "#   Will be on your desktop after install   #
+echo "#############################################"
 echo "Reboot is needed to complete"
 echo "Would you like to reboot now? y/n"
 read ANSW
@@ -58,21 +41,4 @@ else
 echo "GPS won't work until reboot"
 exit 0
 fi
-else
-#install section for Buster
-#echo "This script will not work on Buster"
-apt-get install -y gpsd gpsd-clients python-gps chrony
-echo "refclock SHM 0 offset 0.5 delay 0.2 refid NMEA" >> /etc/chrony/chrony.conf
-echo "Reboot is need to complete installation"
-echo "Would you like to reboot now? y/n"
-read ANSW1
 
-    if [ $ANSW1 = "y" ]
-    then
-    reboot
-    else
-    echo "GPS won't work until reboot"
-    exit 0
-    fi
-
-fi
