@@ -28,7 +28,7 @@ wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/gps-instruction 
 echo "";echo ""; echo ""
 echo "#############################################"
 echo "#            GPS Instructions               #"
-echo "#   Will be on your desktop after install   #
+echo "#   Will be on your desktop after install   #"
 echo "#############################################"
 echo "Reboot is needed to complete"
 echo "Would you like to reboot now? y/n"
