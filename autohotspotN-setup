@@ -5,31 +5,21 @@
 #This version will provide internet when using the hotspot IF an ethernet cable is plugged in"
 #This will be useful with AREDN mesh networking
 #km4ack 20190409
-#km4ack 20190913 last edit
+#km4ack 20190923 last edit
 
 #check if running buster
-#and warn user
+#and grab different script if true
 BUSTER=$(cat /etc/os-release | grep -i buster)
 
 if [ -z "$BUSTER" ]
 then
 echo ""
 else
-echo "";echo "";echo ""
-echo "Looks like you are running Raspbian Buster"
-echo "You should see this article before continuing"
-echo "https://www.patreon.com/posts/buster-29942780"
-echo "Open link above by right clicking & choosing open url"
-echo "Or copy/paste into the browser"
-echo "";echo ""
-echo "Would you like to proceed? y/n"
-read BUSTERASW
-	if [ $BUSTERASW = "y" ]
-	then
-	echo "Proceeding with the install"
-	else
-	exit 0
-	fi
+wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/autohotspot-buster
+chmod +x autohotspot-buster
+./autohotspot-buster
+rm autohotspotN-setup
+exit 0
 fi
 
 #update packages
