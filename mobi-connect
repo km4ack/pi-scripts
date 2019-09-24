@@ -1,0 +1,52 @@
+#!/bin/bash
+
+#connect to mobilinkd device
+#and set for serial->bluetooth connection
+#for APRS using xastir or Packet using Pat Winlink
+#script for mobilinkd TNC2
+#will not work with mobilinkd tnc3
+#km4ack 20190822
+clear
+echo "Please Wait"
+echo "Scanning for device....this takes ~20 seconds"
+#scan for bluetooth device and write to file
+hcitool scan > ~/Desktop/scan.txt
+echo "Scan complete"
+#find mac address of mobilinkd device
+mac=$(cat ~/Desktop/scan.txt | grep Mobi | sed s/Mobilinkd.*//g | tr -d '[:blank:]')
+
+#See if device was found and connect if found
+if [ -z "$mac" ]
+then
+      echo "Mobilinkd not found"
+      rm ~/Desktop/scan.txt
+else
+      #stop things that might interfere
+      sudo killall pat kissattach js8call
+      echo "Creating the connection"
+      rm ~/Desktop/scan.txt
+      sudo rfcomm connect /dev/rfcomm0 $mac &
+      sleep 5
+      echo "";echo "";echo ""
+      echo "If you choose not to start a Winlink Session"
+      echo "Then APRS will be started instead"
+      read -p  "Would you like to run a Winlink Session? y/n " winlink
+		if [ $winlink = "y" ]
+		then
+		echo "starting kissattach for winlink"
+      		sudo kissattach /dev/rfcomm0 wl2k &
+		sleep 2
+		pat http &
+		sleep 1
+		echo "";echo ""
+		echo "Both services started and ready"
+               	else
+		echo "";echo ""
+		echo "winlink not started"
+		echo "Start xastir for APRS-Digipeater"
+		sleep 1
+		sudo xastir &
+		fi
+fi
+
+exit 0
