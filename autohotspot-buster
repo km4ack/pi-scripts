@@ -9,8 +9,8 @@
 #km4ack 20190923
 
 #inserted just for testing purporses
-echo "THIS IS ONLY A TEST"
-exit 0
+#echo "THIS IS ONLY A TEST"
+#exit 0
 
 #update packages
 apt-get update
