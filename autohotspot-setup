@@ -2,6 +2,8 @@
 
 #install autohotspot from raspberrypiconnect.com
 #http://www.raspberryconnect.com/network/item/331-raspberry-pi-auto-wifi-hotspot-switch-no-internet-routing
+#This is for Stretch only. Script will check for Buster and
+#dowload different script as needed. 
 #km4ack 20190409
 #km4ack 20190912
 
