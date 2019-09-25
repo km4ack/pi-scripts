@@ -10,6 +10,9 @@ Keep your Winlink Gateway List up to date - https://youtu.be/Xdp3iovC8ws
 ### JS8Call 
 Various scripts for JS8Call
 
+### pat
+Concept menu for working with Pat Winlink. Designed to simplify use of EES.
+
 ### autohotspot-buster 
 Install autohotspot on Pi’s running Buster. This script will be installed during the autohotspotN install automatically if the user is running Buster instead of Stretch
 
