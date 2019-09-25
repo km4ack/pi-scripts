@@ -1,9 +1,29 @@
 # pi-scripts
+
+These scripts are provided as-is with no warranty whatsoever. Use it at your own risk.
+
 Various scripts written for ham radio pi
 
-A collection of scripts that I use on a raspberry pi that powers my ham radio.
+### ARDOP 
+Keep your Winlink Gateway List up to date - https://youtu.be/Xdp3iovC8ws
 
-Scripts typically have notes at the top.
+### JS8Call 
+Various scripts for JS8Call
+
+### autohotspot-buster 
+Install autohotspot on Pi’s running Buster. This script will be installed during the autohotspotN install automatically if the user is running Buster instead of Stretch
+
+### autohotspotN
+Script to install a wireless hotspot on the Raspberry Pi https://youtu.be/qMT-0mz1lkI
+
+### gpsinstall
+Will install needed apps for using a GPS dongle. This included location information fromt the GPS & system time from the GPS
+
+### mobi-connect
+Script used with Mobilinkd TNC 2 to autostart connection and either Pat Winlink or APRS gateway with xastir. VIDEO LINK NEEDED
+
+### wificonnect 
+Script used to list and update wpa_supplicant.conf file for new WiFi connections.
 
 73,
 KM4ACK
