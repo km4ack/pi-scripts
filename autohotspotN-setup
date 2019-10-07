@@ -5,7 +5,17 @@
 #This version will provide internet when using the hotspot IF an ethernet cable is plugged in"
 #This will be useful with AREDN mesh networking
 #km4ack 20190409
-#km4ack 20190923 last edit
+#km4ack 20191006 last edit
+
+#check if run as root
+who=$(whoami)
+if [ $who == "root" ]
+then
+echo ""
+else
+echo "Script should be run as root"
+echo "sudo autohotspotN-setup"
+fi
 
 #check if running buster
 #and grab different script if true
