@@ -12,9 +12,10 @@ systemctl is-active chronyd
 
 Both should show. “active”
 
+To see your time sources, run:
+chronyc sources -v 
 
-To see a graphical representation of the GPS run
-
+To see a graphical representation of the GPS run:
 xgps
 
 
