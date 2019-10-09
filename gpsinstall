@@ -23,7 +23,7 @@ wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/gpsd -P /etc/def
 echo "refclock SHM 0 offset 0.5 delay 0.2 refid NMEA" >> /etc/chrony/chrony.conf
 
 #download instructions to pi's desktop
-wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/gps-instruction -P home/pi/Desktop
+wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/gps-instruction -P $HOME/Desktop
 
 echo "";echo ""; echo ""
 echo "#############################################"
