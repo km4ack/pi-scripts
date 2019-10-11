@@ -22,14 +22,10 @@ wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/gpsd -P /etc/def
 
 echo "refclock SHM 0 offset 0.5 delay 0.2 refid NMEA" >> /etc/chrony/chrony.conf
 
-#download instructions to pi's desktop
-wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/gps-instruction -P $HOME/Desktop
-
-echo "";echo ""; echo ""
-echo "#############################################"
-echo "#            GPS Instructions               #"
-echo "#   Will be on your desktop after install   #"
-echo "#############################################"
+echo "";echo "";echo ""
+echo "#############################################################################################"
+echo "#instructions at https://raw.githubusercontent.com/km4ack/pi-scripts/master/gps-instruction #"
+echo "#############################################################################################"
 echo "Reboot is needed to complete"
 echo "Would you like to reboot now? y/n"
 read ANSW
