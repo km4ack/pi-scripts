@@ -1,7 +1,4 @@
-#This file will be placed on the users desktop
-#When running the gpsinstall script
 #km4ack 20190912
-
 #####################################################
 
 Use the following two commands by opening a terminal
@@ -15,8 +12,10 @@ Both should show. “active”
 To see your time sources, run:
 chronyc sources -v 
 
-To see a graphical representation of the GPS run:
+To see a graphical representation of the GPS run
+one of the following:
 xgps
+cgps
 
 
 73, de KM4ACK 
