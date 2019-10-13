@@ -28,6 +28,49 @@ PDF_APP='evince -w'
 
 ######### END USER CONFIG ################
 
+##############SECTION ADDED 20191013###############
+
+#Check if directory exist
+if [ ! -d "$HOME/Documents/ardop-list" ]
+then
+BEFORE=""
+else
+BEFORE=$(ls $HOME/Documents/ardop-list/)
+fi
+
+LIST=$(find $HOME/ardop -name getardoplist)
+
+#Check to see if getardoplist is found at ~/ardop
+if [ -z "$LIST" ]
+then 
+#Check to see if getardoplist is found at ~/bin
+LIST=$(find $HOME/bin -name getardoplist)
+fi
+
+LIST=$(echo $LIST | sed 's/getardoplist//')
+
+#This will test to see if we have the getardoplist script
+#and download if needed. It also checks to see if we have
+#downloaded a list before. 
+if [ -z "$BEFORE" ]
+then
+	if [ -z "$LIST" ]
+	then
+	echo "Downloading getardoplist script"
+	mkdir -p $HOME/ardop
+	cd $HOME/ardop
+	wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/ardop/getardoplist
+	chmod +x getardoplist
+	$HOME/ardop/./getardoplist
+	else
+	$LIST./getardoplist
+	fi
+else
+echo "The list has been downloaded before....continuing"
+fi
+
+################END 20191013 ADDITION########################
+
 
 #Read date of last download in each file
 if	[ -f $MYPATH'ardoplist.txt' ]; then
