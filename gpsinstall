@@ -1,12 +1,6 @@
 #!/bin/bash
 
-#script to install GPS Dongle for Rasperry Pi 3
-#Written on pi3 running stretch
-#Things changed in Buster. Working on a solution.
-#Currently not confirmed working with Buster
-#The GPS is working in Buster and can be seen by running cpgs
-#However, the time is NOT being pulled from the GPS and passed to 
-#the system.
+#script to install GPS Dongle for Raspberry Pi 
 #km4ack 20190911
 #Last Edit km4ack 20191014
 
