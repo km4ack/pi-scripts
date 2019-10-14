@@ -6,7 +6,31 @@
 #script for mobilinkd TNC2
 #will not work with mobilinkd tnc3
 #km4ack 20190822
+#km4ack 20191014 last edit
 clear
+PAT=$(dpkg --get-selections | grep -w "pat")
+XASTIR=$(dpkg --get-selections | grep -w "xastir")
+
+if [ -z "$PAT" ]
+then
+echo "Pat was not found on the system"
+echo "Pat Winlink is needed for this script"
+echo "Please install Pat Winlink"
+exit 0
+else
+echo "Pat Winlink found"
+fi
+
+if [ -z "$XASTIR" ]
+then
+echo "Xastir is not installed"
+echo "Xastir is needed for this script"
+echo "Please install Xastir"
+exit 0
+else
+echo "Xastir found"
+fi
+#Start connection to TNC
 echo "Please Wait"
 echo "Scanning for device....this takes ~20 seconds"
 #scan for bluetooth device and write to file
