@@ -8,7 +8,17 @@
 #However, the time is NOT being pulled from the GPS and passed to 
 #the system.
 #km4ack 20190911
-#Last Edit km4ack 20190920
+#Last Edit km4ack 20191014
+
+#check if running as root
+IAM=$(whoami)
+if [ $IAM = "root" ]
+then
+echo 
+else
+echo "Please run this script as root"
+exit 0
+fi
 
 #install needed packages
 echo "installing a few needed packages"
