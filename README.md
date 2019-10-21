@@ -23,7 +23,7 @@ Script to install a wireless hotspot on the Raspberry Pi https://youtu.be/qMT-0m
 Will install needed apps for using a GPS dongle. This included location information fromt the GPS & system time from the GPS
 
 ### mobi-connect
-Script used with Mobilinkd TNC 2 to autostart connection and either Pat Winlink or APRS gateway with xastir. VIDEO LINK NEEDED
+Script used with Mobilinkd TNC 2/3 to autostart connection and either Pat Winlink or APRS gateway with xastir. https://youtu.be/YN2Aa4E1YtU
 
 ### wificonnect 
 Script used to list and update wpa_supplicant.conf file for new WiFi connections.
