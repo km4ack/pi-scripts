@@ -1,16 +1,25 @@
 #!/bin/bash
 
-#connect to mobilinkd device
-#and set for serial->bluetooth connection
-#for APRS using xastir or Packet using Pat Winlink
-#script for mobilinkd TNC2
-#will not work with mobilinkd tnc3
-#km4ack 20190822
-#km4ack 20191014 last edit
+#REQUIREMENTS
+#Mobilinkd TNC 2 or 3
+#Pat Winlink (Must already be configured for 2M Packet)
+#Help Installing Pat - https://bit.ly/2m42271
+#Xastir
+
+
+#connect to mobilinkd device via bluetooth
+#and set for bluetooth->serial connection
+#for APRS using xastir or Packet Winlink using Pat
+#special thanks to Rich for loaning me a TNC3 to test with
+#KM4ACK 20190907
+#Last edit 20191021 to add support for mobilinkd TNC3
+
 clear
+
 PAT=$(dpkg --get-selections | grep -w "pat")
 XASTIR=$(dpkg --get-selections | grep -w "xastir")
 
+#check if Pat is installed
 if [ -z "$PAT" ]
 then
 echo "Pat was not found on the system"
@@ -21,6 +30,7 @@ else
 echo "Pat Winlink found"
 fi
 
+#check if xastir is installed
 if [ -z "$XASTIR" ]
 then
 echo "Xastir is not installed"
@@ -30,47 +40,77 @@ exit 0
 else
 echo "Xastir found"
 fi
-#Start connection to TNC
+
+#give user some feedback
 echo "Please Wait"
 echo "Scanning for device....this takes ~20 seconds"
+
 #scan for bluetooth device and write to file
-hcitool scan > ~/Desktop/scan.txt
+hcitool scan > $HOME/Desktop/scan.txt
 echo "Scan complete"
-#find mac address of mobilinkd device
-mac=$(cat ~/Desktop/scan.txt | grep Mobi | sed s/Mobilinkd.*//g | tr -d '[:blank:]')
+
+#Decide if its a TNC 2 or 3
+TNC2=$(cat $HOME/Desktop/scan.txt | grep -i TNC2)
+TNC3=$(cat $HOME/Desktop/scan.txt | grep -i TNC3)
+if [ -z "$TNC2" ]
+then 
+MAC=$(cat $HOME/Desktop/scan.txt | grep -i mobi | awk '{ print $1 }')
+TNC=3
+elif [ -z "$TNC3" ]
+then
+MAC=$(cat $HOME/Desktop/scan.txt | grep -i mobi | awk '{ print $1 }')
+TNC=2
+fi
+
+#set correct connection commmand
+if [ $TNC = "2" ]
+then
+CONNECT="sudo rfcomm connect /dev/rfcomm0 $MAC"
+elif [ $TNC = "3" ]
+then
+CONNECT="sudo rfcomm connect /dev/rfcomm0 $MAC 6"
+fi
 
 #See if device was found and connect if found
-if [ -z "$mac" ]
+if [ -z "$MAC" ]
 then
       echo "Mobilinkd not found"
-      rm ~/Desktop/scan.txt
+      rm $HOME/Desktop/scan.txt
 else
-      #stop things that might interfere
-      sudo killall pat kissattach js8call
+      #stop things that might conflict
+      sudo killall js8call kissattach direwolf >> /dev/null 2>&1
+      echo "Mobilinkd TNC $TNC detected"
       echo "Creating the connection"
-      rm ~/Desktop/scan.txt
-      sudo rfcomm connect /dev/rfcomm0 $mac &
+      rm $HOME/Desktop/scan.txt
+      #create bluetooth->serial connection
+      $CONNECT &
       sleep 5
-      echo "";echo "";echo ""
-      echo "If you choose not to start a Winlink Session"
+      echo ""
+      echo ""
+      echo ""
+      echo "If you choose to not start a Winlink Session"
       echo "Then APRS will be started instead"
       read -p  "Would you like to run a Winlink Session? y/n " winlink
 		if [ $winlink = "y" ]
 		then
 		echo "starting kissattach for winlink"
+		#create kissattach needed for winlink connections
       		sudo kissattach /dev/rfcomm0 wl2k &
 		sleep 2
+		#start pat winlink
 		pat http &
 		sleep 1
-		echo "";echo ""
+		echo ""
+		echo ""
 		echo "Both services started and ready"
                	else
-		echo "";echo ""
+		echo ""
+		echo ""
 		echo "winlink not started"
 		echo "Start xastir for APRS-Digipeater"
 		sleep 1
+		#start xastir
 		sudo xastir &
 		fi
 fi
-
 exit 0
