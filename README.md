@@ -20,7 +20,7 @@ Install autohotspot on Pi’s running Buster. This script will be installed duri
 Script to install a wireless hotspot on the Raspberry Pi https://youtu.be/qMT-0mz1lkI
 
 ### gpsinstall
-Will install needed apps for using a GPS dongle. This included location information fromt the GPS & system time from the GPS
+Will install needed apps for using a GPS dongle. This included location information fromt the GPS & system time from the GPS https://amzn.to/2MAmEyw
 
 ### mobi-connect
 Script used with Mobilinkd TNC 2/3 to autostart connection and either Pat Winlink or APRS gateway with xastir. https://youtu.be/YN2Aa4E1YtU
