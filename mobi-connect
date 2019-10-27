@@ -98,7 +98,7 @@ else
       		sudo kissattach /dev/rfcomm0 wl2k &
 		sleep 2
 		#start pat winlink
-		pat http &
+		pat http
 		sleep 1
 		echo ""
 		echo ""
@@ -110,7 +110,7 @@ else
 		echo "Start xastir for APRS-Digipeater"
 		sleep 1
 		#start xastir
-		sudo xastir &
+		sudo xastir
 		fi
 fi
 exit 0
