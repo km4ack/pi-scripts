@@ -1,0 +1,286 @@
+#!/bin/bash
+
+#script to post WL2K catalog requests to pat winlink
+#20191110 KM4ACK
+
+#verify the city weather list exist
+FILE=$HOME/patmenu/weather.txt
+if [ -f $FILE ]; then
+   echo ""
+else
+   echo "The weather reference file needs to be downloaded"
+   echo "This only occurs on the first run"
+   read -n 1 -s -r -p "Press any key to download"
+   wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/pat/weather.txt
+fi
+
+#get callsign from pat config file
+CALLSIGN=$(cat $HOME/.wl2k/config.json | grep -m 1 mycall | sed 's/\"mycall\": \"//' | sed 's/\",//' | sed -e 's/^\s*//')
+
+PS3='Please enter your choice: '
+
+#COMPOSE EMAIL Function
+COMPOSE () {
+
+#Count body characters
+BODYCOUNT=${#BODY}
+NEWCOUNT=$(expr $BODYCOUNT + 1)
+
+#set date
+TODAY=$(date '+%Y/%m/%d %H:%M')
+TODAY1=$(date)
+
+#generate 12 random number
+NEW_UUID=$(cat /dev/urandom | tr -dc 'A-Z0-9' | fold -w 12 | head -n 1)
+
+#add .b2f to end of random number for new file name
+NEW_FILE=$HOME/.wl2k/mailbox/$CALLSIGN/out/$NEW_UUID".b2f"
+
+#create new file
+touch $NEW_FILE
+
+#add file contents
+echo "Mid: "$NEW_UUID >> $NEW_FILE
+echo "Body: "$NEWCOUNT >> $NEW_FILE
+echo "Content-Transfer-Encoding: 8bit" >> $NEW_FILE
+echo "Content-Type: text/plain; charset=ISO-8859-1" >> $NEW_FILE
+echo "Date: "$TODAY >> $NEW_FILE
+echo "From: "$CALLSIGN >> $NEW_FILE
+echo "Mbo: "$CALLSIGN >> $NEW_FILE
+echo "Subject: "$SUBJECT >> $NEW_FILE
+echo "To: "$TO >> $NEW_FILE
+echo "Type: Private" >> $NEW_FILE
+echo "" >> $NEW_FILE
+echo $BODY >> $NEW_FILE
+#give user some feedback
+echo "Your request has been posted to the outbox of Pat Winlink"
+echo "Please go to Pat and initiate a connection to send the request"
+read -n 1 -s -r -p "Press any key to continue"
+exit 0
+}
+
+
+#GATEWAY Menu Function
+GATEWAYS () {
+clear;echo;echo;echo;
+echo "Gateway List Request"
+echo
+MENU=("ARDOP List" "Packet List" "Main Menu")
+select ITEM in "${MENU[@]}"
+do
+	case $ITEM in
+	"ARDOP List")
+#ARDOP STATION REQUEST
+	TO="INQUIRY"
+	SUBJECT="REQUEST"
+	BODY="PUB_ARDOP"
+	COMPOSE
+		;;
+	"Packet List")
+#PACKET STATION REQUEST
+	TO="INQUIRY"
+	SUBJECT="REQUEST"
+	BODY="PUB_PACKET"
+	COMPOSE
+		;;
+	"Main Menu")
+		MAIN-MENU
+		;;
+        *) echo "invalid option $REPLY";;
+	esac
+done
+}
+
+#news Menu Function
+NEWS () {
+clear;echo;echo;echo;
+echo "News Request"
+echo
+MENU=("Reuters Daily" "Reuters Market" "Reuters Money" "Reuters US News" "Main Menu")
+select ITEM in "${MENU[@]}"
+do
+	case $ITEM in
+	"Reuters Daily")
+#daily
+	TO="SMTP:query@saildocs.com"
+	SUBJECT="subject"
+	BODY="send Reuters-Daily-News"
+	COMPOSE
+		;;
+	"Reuters Market")
+#market
+	TO="SMTP:query@saildocs.com"
+	SUBJECT="subject"
+	BODY="send Reuters-Market"
+	COMPOSE
+		;;
+	"Reuters Money")
+#money
+	TO="SMTP:query@saildocs.com"
+	SUBJECT="subject"
+	BODY="send Reuters-Money"
+	COMPOSE
+		;;
+	"Reuters US News")
+#us news
+	TO="SMTP:query@saildocs.com"
+	SUBJECT="subject"
+	BODY="send Reuters-US-News"
+	COMPOSE
+		;;
+	"Main Menu")
+		MAIN-MENU
+		;;
+        *) echo "invalid option $REPLY";;
+	esac
+done
+}
+
+#WEATHER Menu Function
+WEATHER () {
+clear;echo;echo;echo
+echo "Weather Report Request"
+echo
+MENU=("GPS Weather" "City Weather" "Main Menu")
+select ITEM in "${MENU[@]}"
+do
+    case $ITEM in
+        "GPS Weather")
+            echo "Standby please"
+	GPSDATA=$(gpspipe -r -n 10 | grep GPGGA)
+	LAT=$(echo $GPSDATA | awk -F"," '{ print $3 }'| sed 's/\.//' | sed 's/./&./2')
+	LON=$(echo $GPSDATA | awk -F"," '{ print $5 }'| sed 's/\.//' | sed 's/./&./3')
+	TO="SMTP:query@saildocs.com"
+	SUBJECT="<No Subject>"
+	BODY="https://forecast.weather.gov/MapClick.php?lat="$LAT"&lon=-"$LON"&unit=0&lg=english&FcstType=text&TextType=1"
+	COMPOSE
+            ;;
+        "City Weather")
+            echo;echo;
+	echo "You will need to know the area ID"
+	echo "you wish to see the forecast for."
+	echo "Area ID is left column of following table."
+	echo
+	echo "Use the space bar to scroll through"
+	echo "the table one screen at a time and note"
+	echo "the area ID you wish to use."
+	echo
+	read -n 1 -s -r -p "Press any key to continue"
+	clear
+	cat $HOME/patmenu/weather.txt | column -s ',' -t | more
+	echo;echo;echo;
+	echo "What is the area ID you would like to request? "
+	read CITY
+		if [ -z $CITY ]
+		then
+		echo "Area ID cannot be blank. Try again"
+		exit 0
+		fi
+	TO="INQUIRY"
+	SUBJECT="REQUEST"
+	BODY=$CITY
+	COMPOSE
+            ;;
+        "Main Menu")
+            MAIN-MENU
+            ;;
+        *) echo "invalid option $REPLY";;
+    esac
+done
+}
+
+#Postitions Request Function
+POSITIONS () {
+clear;echo;echo;echo
+echo "Position Report Request"
+echo
+MENU=("Single Station" "All Nearby" "Main Menu")
+select ITEM in "${MENU[@]}"
+do
+    case $ITEM in
+        "Single Station")
+        TO="QTH"
+	SUBJECT="POSITION REQUEST"
+	echo "Which call sign would you like the position for?"
+	echo "Only one call sign may be entered"
+	read CALL
+	BODY=$CALL
+	COMPOSE
+            ;;
+        "All Nearby")
+        TO="INQUIRY"
+	SUBJECT="REQUEST"
+	BODY="WL2K_NEARBY"
+	COMPOSE
+            ;;
+        "Main Menu")
+            MAIN-MENU
+            ;;
+        *) echo "invalid option $REPLY";;
+    esac
+done
+}
+
+#Propagation Request Function
+PROPAGATION () {
+clear;echo;echo;echo
+echo "Propagation Report Request"
+echo
+MENU=("3 Day Prop" "Daily WWV Report" "Main Menu")
+select ITEM in "${MENU[@]}"
+do
+    case $ITEM in
+        "3 Day Prop")
+        TO="INQUIRY"
+	SUBJECT="REQUEST"
+	BODY="PROP_3DAY"
+	COMPOSE
+            ;;
+        "Daily WWV Report")
+        TO="INQUIRY"
+	SUBJECT="REQUEST"
+	BODY="PROP_WWV"
+	COMPOSE
+            ;;
+        "Main Menu")
+            MAIN-MENU
+            ;;
+        *) echo "invalid option $REPLY";;
+    esac
+done
+}
+
+MAIN-MENU () {
+clear;echo;echo;echo
+echo "Winlink Catalog Script by KM4ACK"
+echo
+MENU=("Gateway List" "Weather" "Position Reports" "Propagation" "News" "Exit")
+select ITEM in "${MENU[@]}"
+do
+    case $ITEM in
+        "Gateway List")
+		GATEWAYS
+		;;
+        "Weather")
+		WEATHER
+		;;
+        "Position Reports")
+		POSITIONS
+		;;
+        "Propagation")
+		PROPAGATION
+		;;
+        "News")
+		NEWS
+		;;
+	"Exit")
+		exit 0
+		;;
+        *) echo "invalid option $REPLY";;
+    esac
+done
+}
+
+
+#call main menu
+MAIN-MENU
