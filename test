@@ -28,8 +28,6 @@ STARTRIG
 if [ -z "$PIDCTL" ]
 then
 STARTRIG
-else
-break
 fi
 echo "This is rig from config file-"$RIG
 echo "PID of rigctld at start-"$STARTPID
