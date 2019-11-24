@@ -1,0 +1,174 @@
+#!/bin/bash
+
+#test script to figure out why rig control isn't starting
+
+source $HOME/patmenu/config
+
+ARDOPLIST=$HOME/patmenu/ardop-list/
+
+touch $LOG
+
+DATE=$(date)
+
+STARTPID=$(pidof rigctld)
+
+STARTRIG () {
+#start rigctld if not already
+PIDCTL=$(pidof rigctld)
+WHO=$(whoami)
+	if [ -z "$PIDCTL" ]
+	then
+	CONTROL=$(echo $RIG | sed 's/rigctl/rigctld/')
+	#CONTROL=$(cat $HOME/patmenu/config | grep '^RIG="' | sed 's/RIG="//' | sed 's/"//' | sed 's/rigctl/rigctld/')
+	$CONTROL &
+	sudo systemctl restart pat@$WHO
+	fi
+}
+STARTRIG
+if [ -z "$PIDCTL" ]
+then
+STARTRIG
+else
+break
+fi
+echo "This is rig from config file-"$RIG
+echo "PID of rigctld at start-"$STARTPID
+echo "I am-"$WHO
+echo "Rig control command to start rigctld-"$CONTROL
+echo "PID of rigctld at end-"$PIDCTL
+
+exit 0
+
+SETRIG () {
+
+#Set USB Mode
+RIGUSB=$RIG" M $MODEHF 0"
+
+#check rig is in USB
+MODE=$($RIG m | grep MODEHF)
+
+sleep 1
+
+	MODECHECK() {
+	#check rig is in correct mode
+	MODE=$($RIG m | grep $MODEHF)
+	}
+
+sleep 1
+
+	if [ -z $MODE ]
+	then
+	$RIGUSB
+	MODECHECK
+	fi
+
+}
+
+SETRIG
+
+#Directions Function
+directions () {
+echo "The script needs two arguments to run."
+echo "It needs the distance that you want to try to connect"
+echo "and it needs the band you wish to use"
+echo "Bands available are 20, 30, 40, & 80"
+echo "The first argument is the distance"
+echo "and the second is the band. So to try all 40M"
+echo "stations in a 300km radius, you would enter"
+echo "autopat 300 40"
+exit 0
+}
+
+#check if distance is empty and give direction
+if [ -z "$1" ]
+then
+directions
+fi
+
+#check if band is empty and give direction
+if [ -z "$2" ]
+then
+directions
+fi
+
+#Check for min distance
+if [ -z "$3" ]
+then
+MIN=0
+else
+MIN=$3
+fi
+
+#take $2 as band to use
+if [ $2 = "20" ]
+then
+FILE=$ARDOPLIST"20mardoplist.txt"
+elif [ $2 = "30" ]
+then 
+FILE=$ARDOPLIST"30mardoplist.txt"
+elif [ $2 = "40" ]
+then
+FILE=$ARDOPLIST"40mardoplist.txt"
+elif [ $2 = "80" ]
+then
+FILE=$ARDOPLIST"80mardoplist.txt"
+fi
+
+#Verify we have a list to work with
+test -f $FILE
+FILERESULT=$(echo $?)
+if [ $FILERESULT = "1" ]
+then
+echo "FILE DOESN'T EXIST."
+#Ask user to install findardop??
+exit 0
+fi
+
+#start piardopc
+$ARDOP &
+sleep 10
+
+#Pat Connection Function
+connect () {
+pat connect $CALL
+#Check if connection was successful
+RESULTS=$(echo $?)
+if [ $RESULTS = "0" ]
+then
+echo "A connection was made"
+echo $DATE" "$Call" Success with autopat" >> $LOG
+sudo killall piardopc
+exit 0
+fi
+}
+
+#create temp dir & manipulate file
+mkdir -p $HOME/tempardop/
+#cat file, remove first few lines, remove blanks > NEWFILE NAME
+cat $FILE | tail -n +5 | grep '[^[:blank:]]' > $HOME/tempardop/tempardop.txt
+
+#pad with zeros
+while read LINE
+    do DISTANCE=$(echo $LINE | awk '{ print $3 }' | sed -e :a -e 's/^.\{1,4\}$/0&/;ta')
+	CALL=$(echo $LINE | awk '{ print $11 }')
+	echo $DISTANCE" "$CALL >> $HOME/tempardop/tempardop1.txt
+done < $HOME/tempardop/tempardop.txt
+
+cat $HOME/tempardop/tempardop1.txt | sort >> $HOME/tempardop/sorted.txt
+
+echo "Will Attempt to Connect to This Station"
+#loop through file and find needed station info
+while read LINE
+    do DISTANCE=$(echo $LINE | awk '{ print $1 }')
+	CALL=$(echo $LINE | awk '{ print $2 }')
+	if [ $DISTANCE -lt "$1" ] && [ $DISTANCE -gt "$MIN" ]
+	then
+	echo "Distance="$DISTANCE " Call="$CALL
+	#call the connect funtion
+	connect
+	fi
+done < $HOME/tempardop/sorted.txt
+
+
+#remove temp directory & files
+rm -rf $HOME/tempardop
