@@ -31,14 +31,14 @@ echo "##########################################################################
 echo "#instructions at https://raw.githubusercontent.com/km4ack/pi-scripts/master/gps-instruction #"
 echo "#############################################################################################"
 echo "Reboot is needed to complete"
-echo "Would you like to reboot now? y/n"
-read ANSW
+#echo "Would you like to reboot now? y/n"
+#read ANSW
 
-if [ $ANSW = "y" ]
-then
-reboot
-else
-echo "GPS won't work until reboot"
-exit 0
-fi
+#if [ $ANSW = "y" ]
+#then
+#reboot
+#else
+#echo "GPS won't work until reboot"
+#exit 0
+#fi
 
