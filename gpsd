@@ -4,7 +4,7 @@
 START_DAEMON="true"
 
 # Use USB hotplugging to add new USB devices automatically to the daemon
-USBAUTO="true"
+USBAUTO="false"
 
 # Devices gpsd should collect to at boot time.
 # They need to be read/writeable, either by user gpsd or the group dialout.
