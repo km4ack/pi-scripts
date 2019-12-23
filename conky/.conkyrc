@@ -85,8 +85,5 @@ ${if_running pavucontrol}${color green}PULSE ACTIVE${else}${color red}PULSE OFF$
 ${alignr}${if_running pat}${color green}PAT ACTIVE${else}${color red}PAT OFF$endif
 
 ${font Arial:bold:size=14}${color Yellow}RECENT LOG ENTRIES ${color DarkSlateGray}${hr 2}
-${font Arial:bold:size=10}${color White}${tail ~/Documents/mylog.txt 5}
+#${font Arial:bold:size=10}${color White}${tail ~/Documents/mylog.txt 5}
 
-
-
-#$diskio
