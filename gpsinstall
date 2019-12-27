@@ -16,7 +16,7 @@ fi
 
 #install needed packages
 echo "installing a few needed packages"
-apt-get install -y gpsd gpsd-clients python-gps chrony
+apt-get install -y gpsd gpsd-clients python-gps chrony python-gi-cairo
 
 #backup gpsd file
 mv /etc/default/gpsd /etc/default/gpsd.org
