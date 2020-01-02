@@ -1,0 +1,60 @@
+#!/bin/bash
+
+#grib file request script
+#20200102 km4ack
+
+clear;echo;echo;echo
+echo "Large = 10 degrees"
+echo "Medium = 6 degrees"
+echo "Small = 2 degrees"
+
+read -p "large, medium, or small? l/m/s " ANS
+echo;echo "processing the data"
+
+if [ $ANS = "l" ]
+then
+AREA=5
+elif [ $ANS = "m" ]
+then
+AREA=3
+elif [ $ANS = "s" ]
+then
+AREA=1
+fi
+
+GPS=$(gpspipe -r -n 10 | grep G\.GGA)
+
+LAT=$(echo $GPS | awk -F "," '{printf "%.0f \n", $3 }' | cut -c1-2)
+LATD=$(echo $GPS | awk -F "," '{print $4}')
+LON=$(echo $GPS | awk -F "," '{printf "%.0f \n", $5 }' | cut -c1-2)
+LOND=$(echo $GPS | awk -F "," '{print $6}')
+
+echo "======raw gps data======"
+echo $GPS
+echo "=====data we need to work with======"
+echo "Lat="$LAT$LATD
+echo "LON="$LON$LOND
+
+echo "=====NEW DATA======"
+#do some math
+let NEWLATADD=$LAT+$AREA
+let NEWLONADD=$LON+$AREA
+let NEWLATSUB=$LAT-$AREA
+let NEWLONSUB=$LON-$AREA
+
+
+echo "addition"
+echo $NEWLATADD$LATD
+echo $NEWLONADD$LOND
+echo "subtraction"
+echo $NEWLATSUB$LATD
+echo $NEWLONSUB$LOND
+
+#example of correct format
+# send gfs:40N,60N,140W,120W|2,2|24,48,72|PRESS,WIND
+
+echo;echo;
+echo "address the email to query@saildocs.com"
+echo "enter request as the email subject"
+echo "enter the line below into the email body"
+echo "send gfs:"$NEWLATSUB$LATD","$NEWLATADD$LATD","$NEWLONADD$LOND","$NEWLONSUB$LOND"|2,2|24,48,72|PRESS,WIND"
