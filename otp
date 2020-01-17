@@ -1,0 +1,54 @@
+#!/bin/bash
+
+
+clear;echo;echo
+#Let User Name the Pool
+read -p "Give this pool a Name? " ANS
+
+
+RANDOM () {
+#generate random numbers
+NUM=$(od -An -N4 -i /dev/random | tr -s "[:blank:]" | cut -c 3-7)
+NUM1=$(od -An -N4 -i /dev/random | tr -s "[:blank:]" | cut -c 3-7)
+NUM2=$(od -An -N4 -i /dev/random | tr -s "[:blank:]" | cut -c 3-7)
+NUM3=$(od -An -N4 -i /dev/random | tr -s "[:blank:]" | cut -c 3-7)
+NUM4=$(od -An -N4 -i /dev/random | tr -s "[:blank:]" | cut -c 3-7)
+}
+
+
+RANDOM
+SET="$NUM $NUM1 $NUM2 $NUM3 $NUM4"
+RANDOM
+SET1="$NUM $NUM1 $NUM2 $NUM3 $NUM4"
+RANDOM
+SET2="$NUM $NUM1 $NUM2 $NUM3 $NUM4"
+RANDOM
+SET3="$NUM $NUM1 $NUM2 $NUM3 $NUM4"
+RANDOM
+SET4="$NUM $NUM1 $NUM2 $NUM3 $NUM4"
+RANDOM
+SET5="$NUM $NUM1 $NUM2 $NUM3 $NUM4"
+RANDOM
+SET6="$NUM $NUM1 $NUM2 $NUM3 $NUM4"
+RANDOM
+SET7="$NUM $NUM1 $NUM2 $NUM3 $NUM4"
+RANDOM
+SET8="$NUM $NUM1 $NUM2 $NUM3 $NUM4"
+RANDOM
+SET9="$NUM $NUM1 $NUM2 $NUM3 $NUM4"
+
+
+
+clear;echo;echo;
+echo "Name - "$ANS
+echo $SET
+echo $SET1
+echo $SET2
+echo $SET3
+echo $SET4
+echo $SET5
+echo $SET6
+echo $SET7
+echo $SET8
+echo $SET9
+echo;echo;echo;
