@@ -1,0 +1,39 @@
+#!/bin/bash
+
+#script will add wifi to wpa_supplicant file
+#and then run the autohotspot script
+#20200204
+
+mkdir -p $HOME/temp
+TEMPFILE=$HOME/temp/tempwifi
+
+clear;echo;echo
+
+SCAN() {
+echo "Please wait.....scanning for WiFi"
+
+sudo iw dev "wlan0" scan ap-force | egrep "^BSS|SSID:" | grep SSID: | sed 's/SSID://' | awk '{ print $1 }'
+echo
+read -p "Which WiFi would you like to connect to? " WIFI
+read -p "What is the password? " PASS
+}
+SCAN
+echo "Wifi="$WIFI
+echo "PASSWORD="$PASS
+read -p "Is this correct? y/n " ANS
+if [ $ANS = 'y' ]
+then
+cat > $TEMPFILE <<EOF
+network={
+ssid="$WIFI"
+psk="$PASS"
+key_mgmt=WPA-PSK
+}
+EOF
+cat $TEMPFILE |sudo tee -a /etc/wpa_supplicant/wpa_supplicant.conf
+rm $TEMPFILE
+echo "attempting to connect to new wifi"
+sudo /usr/bin/autohotspotN
+else
+exit 0
+fi
