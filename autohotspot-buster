@@ -8,6 +8,10 @@
 #Stretch users should use https://github.com/km4ack/pi-scripts/blob/master/autohotspotN-setup
 #km4ack 20190923
 
+#unblock wifi
+#needed after buster 20200205
+rfkill unblock all > /dev/null 2>&1
+
 #update packages
 apt-get update
 
