@@ -25,7 +25,7 @@ echo
 echo
 echo "These hotspots are available"
 echo
-iwlist wlan0 scan | grep ESSID | sed 's/ESSID://g;s/"//g;s/^                    //g'
+iwlist wlan0 scan | grep ESSID | sed 's/ESSID://g;s/"//g;s/^                    //g' | sed '/^$/d'
 #ask user about hotspots
 echo
 echo "1 to refresh the list, 2 to exit or"
