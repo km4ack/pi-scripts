@@ -12,7 +12,7 @@ clear;echo;echo
 SCAN() {
 echo "Please wait.....scanning for WiFi"
 
-sudo iw dev "wlan0" scan ap-force | egrep "^BSS|SSID:" | grep SSID: | sed 's/SSID://' | awk '{ print $1 }'
+sudo iw dev "wlan0" scan ap-force | egrep "^BSS|SSID:" | grep SSID: | sed 's/SSID://' | awk '{ print $1 }' | sed '/^\s*$/d'
 echo
 read -p "Which WiFi would you like to connect to? " WIFI
 read -p "What is the password? " PASS
