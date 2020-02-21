@@ -5,27 +5,18 @@
 #this script works in conjuction with autohotspot
 #http://www.raspberryconnect.com/network/item/330-raspberry-pi-auto-wifi-hotspot-switch-internet
 #km4ack 20190401
-#edited 20190402
+#edited 20200221
 
-#check to make sure running as root
-WHO=$(whoami)
-if [ $WHO == "root" ]
-then
-echo
-else
-echo "Please run this script as root"
-exit
-fi
+mkdir -p $HOME/temp
+TEMPFILE=$HOME/temp/tempwifi
 
 # Generate List of Available SSIDs
 SSID_LIST () {
-clear
+LIST=$(sudo iw dev "wlan0" scan ap-force | egrep "^BSS|SSID:" | grep SSID: | sed 's/SSID://' | awk '{ print $1 }' )
+clear;echo;echo
+echo "These SSID's are available"
 echo
-echo
-echo
-echo "These hotspots are available"
-echo
-iwlist wlan0 scan | grep ESSID | sed 's/ESSID://g;s/"//g;s/^                    //g' | sed '/^$/d'
+echo "$LIST" | sed '/^$/d'
 #ask user about hotspots
 echo
 echo "1 to refresh the list, 2 to exit or"
@@ -33,6 +24,8 @@ echo "Enter name of SSID would you like add?"
 read SSID
 if [ $SSID == "1" ]
 then
+clear;echo;echo
+echo "Scanning for WiFi again...please wait"
 SSID_LIST
 elif [ $SSID == "2" ]
 then
@@ -42,6 +35,8 @@ fi
 }
 
 #print list on screen
+clear;echo;echo
+echo "Scanning for Wifi.....please wait"
 SSID_LIST
 
 #get SSID password
@@ -51,33 +46,29 @@ read PASS
 
 #verify you want to add the hotspot
 echo
-echo "Do you want to add $SSID to your Wifi connection list? Enter y or n"
+echo "SSID = "$SSID
+echo "Password = "$PASS
+echo "REMEMBER THIS IS CASE SENSITIVE"
+echo "Is this correct? y/n"
 read ANSWER
 
 #make the change to wpa_supplicant.conf
-if [ $ANSWER == "y" ]
+if [ $ANSWER == "y" ] || [ $ANSWER == "Y" ]
 then
-echo "" >> /etc/wpa_supplicant/wpa_supplicant.conf
-echo "network={" >> /etc/wpa_supplicant/wpa_supplicant.conf
-echo "	ssid=\"$SSID\"" >> /etc/wpa_supplicant/wpa_supplicant.conf
-echo "	psk=\"$PASS\"" >> /etc/wpa_supplicant/wpa_supplicant.conf
-echo "	key_mgmt=WPA-PSK" >> /etc/wpa_supplicant/wpa_supplicant.conf
-echo "}" >> /etc/wpa_supplicant/wpa_supplicant.conf
-echo
-#provide user feedback
-echo "The information has been added to wpa_supplicant"
-#offer to run audohotspot script
-echo "Would you like to run  the auto hotspot script?"
-echo "And connect to $SSID"
-echo "Enter 1 for yes, 2 for no"
-read HOTSPOT
-	if [ $HOTSPOT -eq 1 ]
-	then
-	/usr/bin/autohotspotN
-	fi
+cat > $TEMPFILE <<EOF
+network={
+ssid="$SSID"
+psk="$PASS"
+key_mgmt=WPA-PSK
+}
+EOF
+cat $TEMPFILE |sudo tee -a /etc/wpa_supplicant/wpa_supplicant.conf
+rm $TEMPFILE
+echo "attempting to connect to new wifi"
+sudo /usr/bin/autohotspotN
 else
-echo "OK! No mods were made"
-exit
+clear;echo;echo;
+echo "Scanning for WiFi.....please wait"
+SSID_LIST
 fi
 
-exit 0
