@@ -45,7 +45,7 @@ fi
 echo;echo
 echo "You entered $wifipasswd"
 read -p "Is this correct? y/n " wifians
-if [ $wifians == "y" ]
+if [ $wifians == "y" ] || [ $wifians == "Y" ]
 then
 echo
 else
