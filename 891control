@@ -1,0 +1,60 @@
+#!/bin/bash
+
+#script for controlling power on Yaesu-891
+#based on work by Eric Wiessner (KI7POL)
+#20200226 km4ack
+
+#Define 891 rig contol command
+RIG="/usr/bin/rigctl -m 136 -r /dev/ttyUSB0 -s 4800"
+
+RIGNUM=$(echo $RIG | awk '{ print $3 }')
+RIGNAME=$(/usr/bin/rigctl -l | grep "$RIGNUM" |awk '{ print $3 }')
+
+PS3='Please enter your choice: '
+
+STATE() {
+clear
+echo "Getting status of the radio"
+echo "Please standby............."
+echo "This can take a bit"
+#set current state of radio to variable
+STATUS=$($RIG get_powerstat)
+
+if [ $STATUS = '0' ]
+then
+STATUS="Power Off"
+elif [ $STATUS = '1' ]
+then
+STATUS="Power On"
+elif [ $STATUS = '2' ]
+then
+STATUS="Power Standby"
+fi
+
+clear;echo;echo
+echo "-------Current State of "$RIGNAME"-----------"
+echo "              "$STATUS
+echo "-----------------------------------------"
+
+options=("Power On" "Power Off" "Exit")
+select opt in "${options[@]}"
+do
+    case $opt in
+        "Power On")
+	    echo "Stand by while radio is powered on"
+            $RIG set_powerstat 1
+	    STATE
+            ;;
+        "Power Off")
+	    echo "Stand by while radio is powered off"
+	    $RIG set_powerstat 0
+	    STATE
+            ;;
+        "Exit")
+            exit 0
+            ;;
+        *) echo "invalid option $REPLY";;
+    esac
+done
+}
+STATE
