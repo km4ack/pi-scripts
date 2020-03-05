@@ -1,0 +1,87 @@
+#!/bin/bash
+
+#Script to install PHPBB forums
+#20200305 km4ack
+
+#RUN SCRIPT AS ROOT
+WHO=$(whoami)
+if [ $WHO = 'root' ]
+then
+echo
+else
+echo "script must be run as root"
+exit 0
+fi
+
+#install needed apps
+apt-get install -y php7.3 mariadb-server phpmyadmin
+
+#download PHPBB, setup dir, and mod files
+mkdir -p /temp
+cd /temp
+DBDL=$(curl -s https://www.phpbb.com/downloads/ | grep .zip | head -1 | awk '{ print $2 }' | sed 's/href="//' | sed 's/">Download//')
+wget $DBDL
+VER=$(echo $DBDL | sed 's/.*phpBB//')
+DL="phpBB"$VER
+unzip $DL
+mkdir -p /var/www/html/forum
+cd /temp/phpBB3
+cp -r * /var/www/html/forum
+rm -rf /temp
+cd /var/www/html/forum
+chmod 777 config.php
+chmod 777 files
+chmod 777 cache
+chmod 777 store
+
+#set database name and host
+newDb='forum'
+host=localhost
+
+DBQUESTIONS(){
+clear;echo;echo
+cat <<EOF
+The following information is needed
+to create the database that will be
+used by the PHPBB forum software.
+
+EOF
+#get database user name & password
+read -p "Please enter a user name for your database " newUser
+read -p "Please enter a password for your database " newDbPassword
+
+#verify info
+echo "User name - "$newUser
+echo "Password - "$newDbPassword
+read -p "Is this correct y/n " ANS
+if [ "$ANS" = 'y' ] || [ "$ANS" = 'Y' ]
+then
+commands="CREATE DATABASE \`${newDb}\`;CREATE USER '${newUser}'@'${host}' IDENTIFIED BY '${newDbPassword}';GRANT USAGE ON *.* TO '${newUser}'@'${host}' IDENTIFIED BY '${newDbPassword}';GRANT ALL privileges ON \`${newDb}\`.*
+TO '${newUser}'@'${host}';FLUSH PRIVILEGES;"
+#write results to mariadb
+echo "${commands}" | /usr/bin/mysql -u root
+clear;echo;echo
+echo "Database name - "$newDb
+echo "Database user name- "$newUser
+echo "Database password - "$newDbPassword
+echo "hostname - "$host
+echo
+cat <<EOF
+The database has been created. Now 
+open the web browser and navigate to 
+127.0.0.1/forum/install/ Then use the information
+above to install the PHPBB forum software. Once
+complete, please press any key to continue
+EOF
+read -n 1 -s -r -p ""
+mv /var/www/html/$newDb/install /var/www/html/$newDb/install.org
+chmod 644 /var/www/html/$newDb/config.php
+else
+DBQUESTIONS
+fi
+}
+
+DBQUESTIONS
+
+
+
