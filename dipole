@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-#determine 1/4 wave dipole length
+#determine 1/2 wave dipole length
 #20200329 km4ack
 
 if [ -z "$1" ]
@@ -25,7 +25,7 @@ INCH=$(awk "BEGIN {print .$LEN1*12}")
 ROUND=$(printf "%.0f\n" $INCH)
 
 echo
-echo "For 1/4 wave dipole antenna," 
+echo "For 1/2 wave dipole antenna," 
 echo "each leg should be "$FEET"' "$ROUND"\""
 
 
