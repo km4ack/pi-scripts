@@ -1,0 +1,31 @@
+#!/bin/bash
+
+
+#determine 1/4 wave dipole length
+#20200329 km4ack
+
+if [ -z "$1" ]
+then
+clear;echo;echo
+echo "Please use megahertz. Example 7.200"
+read -p "What is the desired frequency " FREQ
+else
+FREQ=$1
+fi
+
+LEN=$(awk "BEGIN {print 234/$FREQ}")
+
+LEN1=$(echo $LEN | sed 's/.*\.//')
+
+FEET=$(echo $LEN | sed 's/\..*$//')
+
+
+INCH=$(awk "BEGIN {print .$LEN1*12}")
+
+ROUND=$(printf "%.0f\n" $INCH)
+
+echo
+echo "For 1/4 wave dipole antenna," 
+echo "each leg should be "$FEET"' "$ROUND"\""
+
+
