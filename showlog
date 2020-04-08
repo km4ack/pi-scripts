@@ -1,19 +1,22 @@
 #!/bin/bash
 
-#displays logfile using YAD
+#displays logfile
 #20191128 km4ack
+#20200408 last edit
 
-#verify YAD is installed & install if not
 	if ! hash yad 2>/dev/null; then
-	sudo apt install -y yad
+	echo "This script requires YAD"
+	echo "Install YAD and try again"
+	exit
 	fi
 
 #set path to log file
 LOGFILE=$HOME/Documents/mylog.txt
+TEMPLOG=/run/user/1000/templog.txt
 
-tail -15 $LOGFILE > $HOME/Documents/templog.txt
+tail -15 $LOGFILE > $TEMPLOG
 
-LOG=$(yad --center --width=800 --height=400 --title="My Log" --text-info=<$HOME/Documents/templog.txt \
+LOG=$(yad --center --width=800 --height=400 --title="My Log" --text-info=<$TEMPLOG \
 --text="Last 15 items in my log file" \
 --button="Delete Log:3" \
 --button="Show More:2" \
@@ -23,14 +26,11 @@ LOG=$(yad --center --width=800 --height=400 --title="My Log" --text-info=<$HOME/
 RC=$?
 if [ $RC == '1' ]
 then 
-rm $HOME/Documents/templog.txt
 exit 0
 elif [ $RC == '2' ]
 then
-yad --center --wrap --width=800 --height=400 --title="My Log" --text-info=<$HOME/Documents/mylog.txt
+yad --center --wrap --width=800 --height=400 --title="My Log" --text-info=<$LOGFILE
 elif [ $RC == '3' ]
 then
 rm $LOGFILE
 fi
-
-rm $HOME/Documents/templog.txt
