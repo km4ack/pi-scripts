@@ -1,0 +1,38 @@
+#!/bin/bash
+
+#Call sign lookup for raspberry pi
+#20200416 km4ack
+
+CALL=$(yad --center --width=200 --wrap --window-icon=$HOME/Pi-ISS/ISS.png --title="Call Sign Lookup" --text="<b>Call Sign Lookup</b> \r by KM4ACK" --text-align=center \
+--form --separator="|" --item-separator="," \
+--field="Callsign to Lookup"
+)
+
+if [ $? = '1' ]; then
+exit
+fi
+
+yad --width=300 --height=75 --title="Sending" --timeout=2 --timeout-indicator=top --no-buttons --center --text="Getting Data" &
+
+CALL=$(echo $CALL | awk -F "|" '{print $1}')
+
+LOOKCALL=$(curl -s https://call3.n0agi.com/$CALL/p/)
+
+CALL=$(echo $LOOKCALL | awk -F "|" '{print $1}' | sed 's/<CALL>//')
+CLASS=$(echo $LOOKCALL | awk -F "|" '{print $2}')
+NAME=$(echo $LOOKCALL | awk -F "|" '{print $10" "$11" "$12}')
+ADDRESS=$(echo $LOOKCALL | awk -F "|" '{print $13}')
+CITY=$(echo $LOOKCALL | awk -F "|" '{print $14" "$15","$16}')
+EXPIRE=$(echo $LOOKCALL | awk -F "|" '{print $24}')
+
+
+
+yad --center --width=350 --wrap --window-icon=$HOME/Pi-ISS/ISS.png --title="Call Sign Lookup" --text="<b>Call Sign Lookup</b> \r by KM4ACK" --text-align=center \
+--form --separator="|" --item-separator="," \
+--field="Callsign":RO "$CALL" \
+--field="Class":RO "$CLASS" \
+--field="Name":RO "$NAME" \
+--field="Address":RO "$ADDRESS" \
+--field="City ST ZIP":RO "$CITY" \
+--field="License Expires":RO "$EXPIRE" \
+--button=gtk-quit:1
