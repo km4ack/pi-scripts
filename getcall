@@ -5,27 +5,30 @@
 
 CALL=$(yad --center --width=200 --wrap --window-icon=$HOME/Pi-ISS/ISS.png --title="Call Sign Lookup" --text="<b>Call Sign Lookup</b> \r by KM4ACK" --text-align=center \
 --form --separator="|" --item-separator="," \
---field="Callsign to Lookup"
+--field="Callsign to Lookup" '' \
+--field="USA Callsign":CHK 'true'
 )
 
 if [ $? = '1' ]; then
 exit
 fi
 
+#timer window while wait on first curl command
 yad --width=300 --height=75 --title="Sending" --timeout=2 --timeout-indicator=top --no-buttons --center --text="Getting Data" &
 
+USCALL=$(echo $CALL | awk -F "|" '{print $2}')
 CALL=$(echo $CALL | awk -F "|" '{print $1}')
+CALL1=$CALL
 
+if [ $USCALL = "TRUE" ]; then
+#look up US call on N0AGI server
 LOOKCALL=$(curl -s https://call3.n0agi.com/$CALL/p/)
-
 CALL=$(echo $LOOKCALL | awk -F "|" '{print $1}' | sed 's/<CALL>//')
 CLASS=$(echo $LOOKCALL | awk -F "|" '{print $2}')
 NAME=$(echo $LOOKCALL | awk -F "|" '{print $10" "$11" "$12}')
 ADDRESS=$(echo $LOOKCALL | awk -F "|" '{print $13}')
 CITY=$(echo $LOOKCALL | awk -F "|" '{print $14" "$15","$16}')
 EXPIRE=$(echo $LOOKCALL | awk -F "|" '{print $24}')
-
-
 
 yad --center --width=350 --wrap --window-icon=$HOME/Pi-ISS/ISS.png --title="Call Sign Lookup" --text="<b>Call Sign Lookup</b> \r by KM4ACK" --text-align=center \
 --form --separator="|" --item-separator="," \
@@ -36,3 +39,34 @@ yad --center --width=350 --wrap --window-icon=$HOME/Pi-ISS/ISS.png --title="Call
 --field="City ST ZIP":RO "$CITY" \
 --field="License Expires":RO "$EXPIRE" \
 --button=gtk-quit:1
+
+else
+
+yad --width=300 --height=75 --title="Sending" --timeout=2 --timeout-indicator=top --no-buttons --center --text="Getting Data" &
+FILE=/run/user/1000/call.txt
+curl -s -k https://hamcall.net/call?callsign=$CALL1 | grep "</table>" -A 4 -m3 | tail -4 > $FILE
+
+NAME=$(cat $FILE | head -1 | sed 's/<B>//' | sed 's/<br>//' | awk -F "," '{print $1}')
+CALL=$(cat $FILE | head -1 | sed 's/<B>//' | sed 's/<br>//' | awk -F "," '{print $2}')
+CITY=$(cat $FILE | head -3 | tail -1 | sed 's/<br>//')
+COUN=$(cat $FILE | head -4 | tail -1 | sed 's/<br>//')
+
+rm $FILE
+
+yad --center --width=350 --wrap --window-icon=$HOME/Pi-ISS/ISS.png --title="Call Sign Lookup" --text="<b>Call Sign Lookup</b> \r by KM4ACK" --text-align=center \
+--form --separator="|" --item-separator="," \
+--field="Callsign":RO "$CALL" \
+--field="Name":RO "$NAME" \
+--field="QTH":RO "$CITY" \
+--field="Country":RO "$COUN" \
+--button=gtk-quit:1
+
+fi
+
+
+
+
+
+
+
+
