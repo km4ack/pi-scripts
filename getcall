@@ -2,16 +2,16 @@
 
 #Call sign lookup for raspberry pi
 #20200416 km4ack
-
+LOOKUP(){
 CALL=$(yad --center --width=200 --wrap --window-icon=$HOME/Pi-ISS/ISS.png --title="Call Sign Lookup" --text="<b>Call Sign Lookup</b> \r by KM4ACK" --text-align=center \
 --form --separator="|" --item-separator="," \
 --field="Callsign to Lookup" '' \
 --field="USA Callsign":CHK 'true'
 )
 
-if [ $? = '1' ]; then
-exit
-fi
+#if [ $? = '1' ]; then
+#exit
+#fi
 
 #timer window while wait on first curl command
 yad --width=300 --height=75 --title="Sending" --timeout=2 --timeout-indicator=top --no-buttons --center --text="Getting Data" &
@@ -19,6 +19,7 @@ yad --width=300 --height=75 --title="Sending" --timeout=2 --timeout-indicator=to
 USCALL=$(echo $CALL | awk -F "|" '{print $2}')
 CALL=$(echo $CALL | awk -F "|" '{print $1}')
 CALL1=$CALL
+
 
 if [ $USCALL = "TRUE" ]; then
 #look up US call on N0AGI server
@@ -38,7 +39,9 @@ yad --center --width=350 --wrap --window-icon=$HOME/Pi-ISS/ISS.png --title="Call
 --field="Address":RO "$ADDRESS" \
 --field="City ST ZIP":RO "$CITY" \
 --field="License Expires":RO "$EXPIRE" \
---button=gtk-quit:1
+--button="Exit:1" \
+--button="Lookup Another:2"
+BUTTON=$?
 
 else
 
@@ -59,11 +62,18 @@ yad --center --width=350 --wrap --window-icon=$HOME/Pi-ISS/ISS.png --title="Call
 --field="Name":RO "$NAME" \
 --field="QTH":RO "$CITY" \
 --field="Country":RO "$COUN" \
---button=gtk-quit:1
-
+--button="Exit:1" \
+--button="Lookup Another:2"
+BUTTON=$?
 fi
 
+if [ $BUTTON = 2 ]; then
+LOOKUP
+fi
 
+}
+
+LOOKUP
 
 
 
