@@ -1,31 +1,32 @@
 #!/bin/bash
 
 
-#determine 1/2 wave dipole length
+#determine dipole length
 #20200329 km4ack
 
-if [ -z "$1" ]
-then
-clear;echo;echo
-echo "Please use megahertz. Example 7.200"
-read -p "What is the desired frequency " FREQ
-else
-FREQ=$1
+FREQ=$(yad --form --width=400 --text="<b>1/2 Wave Dipole Calculator</b> by KM4ACK" --text-align=center --center --title="Dipole Calculator" \
+--field="Desired Frequency?" "7.200" \
+--button=Quit:1 \
+--button=Calculate:2)
+
+if [ $? = 1 ]; then
+exit
 fi
 
+FREQ=$(echo $FREQ | awk -F "|" '{print $1}')
 LEN=$(awk "BEGIN {print 234/$FREQ}")
-
+TOTAL=$(awk "BEGIN {print 468/$FREQ}")
 LEN1=$(echo $LEN | sed 's/.*\.//')
-
 FEET=$(echo $LEN | sed 's/\..*$//')
-
-
 INCH=$(awk "BEGIN {print .$LEN1*12}")
-
 ROUND=$(printf "%.0f\n" $INCH)
+ANS="$FEET feet $ROUND inches long"
 
-echo
-echo "For 1/2 wave dipole antenna," 
-echo "each leg should be "$FEET"' "$ROUND"\""
+yad --center --width=400 --wrap --title="Dipole Calculator" --text="<b>Length of Dipole</b>" --text-align=center \
+--form --separator="|" --item-separator="," \
+--field="Each Leg":RO "$ANS" \
+--field="Total Length":RO "$TOTAL feet" \
+--button=gtk-quit:1
+
 
 
