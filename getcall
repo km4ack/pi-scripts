@@ -8,10 +8,11 @@ CALL=$(yad --center --width=200 --wrap --window-icon=$HOME/Pi-ISS/ISS.png --titl
 --field="Callsign to Lookup" '' \
 --field="USA Callsign":CHK 'true'
 )
+BUT=$?
 
-#if [ $? = '1' ]; then
-#exit
-#fi
+if [ $BUT = 1 ] || [ $BUT = 252 ]; then
+exit
+fi
 
 #timer window while wait on first curl command
 yad --width=300 --height=75 --title="Sending" --timeout=2 --timeout-indicator=top --no-buttons --center --text="Getting Data" &
@@ -42,6 +43,9 @@ yad --center --width=350 --wrap --window-icon=$HOME/Pi-ISS/ISS.png --title="Call
 --button="Exit:1" \
 --button="Lookup Another:2"
 BUTTON=$?
+	if [ $BUTTON = 1 ] || [ $BUTTON = 252 ]; then
+	exit
+	fi
 
 else
 
@@ -67,9 +71,11 @@ yad --center --width=350 --wrap --window-icon=$HOME/Pi-ISS/ISS.png --title="Call
 BUTTON=$?
 fi
 
-if [ $BUTTON = 2 ]; then
-LOOKUP
-fi
+	if [ $BUTTON = 2 ]; then
+	LOOKUP
+	elif [ $BUTTON = 1 ] || [ $BUTTON = 252 ]; then
+	exit
+	fi
 
 }
 
