@@ -1,0 +1,66 @@
+#!/bin/bash
+
+
+#convert temps
+#20200506 km4ack
+
+LOGO=/usr/share/icons/Adwaita/22x22/actions/mark-location.png
+
+	if ! hash yad 2>/dev/null; then
+	sudo apt install -y yad
+	fi
+
+CEL(){
+C1=$(echo "$CTEMP*1.8" | bc)
+C2=$(echo $C1+32 | bc)
+ANSWER=$C2
+}
+
+FAH() {
+F1=$(echo "$FTEMP-32" | bc)
+F2=$(echo "$F1/1.8" | bc)
+ANSWER=$F2
+}
+
+CONVERT(){
+SETTINGS=$(yad --form --width=300 --text-align=center --center --title="TEMP CONVERT" --text-align=center \
+--image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
+--text="<b>Temperature Conversion</b> by KM4ACK" \
+--field="Convert to":CB "Fahrenheit|Celsius" \
+--field="Known Temp" \
+--button="Cancel":1 \
+--button="Convert":2)
+BUT=$?
+TYPE=$(echo $SETTINGS | awk -F "|" '{print $1}')
+TEMP=$(echo $SETTINGS | awk -F "|" '{print $2}')
+if [ $BUT = 1 ]; then
+exit
+elif [ $BUT = 2 ]; then
+	if [ $TYPE = 'Fahrenheit' ]; then
+	CTEMP=$TEMP
+	CEL
+	elif [ $TYPE = 'Celsius' ]; then
+	FTEMP=$TEMP
+	FAH	
+	fi
+fi
+#Display the answer
+yad --form --width=300 --text-align=center --center --title="TEMP CONVERT" --text-align=center \
+--image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
+--text="<b>Temperature Conversion</b> by KM4ACK" \
+--field="Answer":RO "$ANSWER" \
+--button="Cancel":1 \
+--button="Convert Another":2
+BUT=$?
+if [ $BUT = 2 ]; then
+CONVERT
+else
+exit
+fi
+}
+CONVERT
+
+
+
+
+
