@@ -2,35 +2,70 @@
 
 #displays logfile
 #20191128 km4ack
-#20200408 last edit
+#20200610 last edit
+
+LOGO=/usr/share/icons/PiXflat/48x48/apps/fm-details.png
 
 	if ! hash yad 2>/dev/null; then
-	echo "This script requires YAD"
-	echo "Install YAD and try again"
-	exit
+	sudo apt install -y yad
 	fi
+MYPATH=$(pwd)
 
-#set path to log file
-LOGFILE=$HOME/Documents/mylog.txt
-TEMPLOG=/run/user/1000/templog.txt
 
+#create conf file if not found
+if [ ! -f $MYPATH/.showlog.conf ]; then
+echo "Conf file not found. Creating a new one"
+echo "LOGFILE=$HOME/Documents/mylog.txt" > $MYPATH/.showlog.conf
+fi
+source $MYPATH/.showlog.conf
+TEMPLOG=/run/user/1000/templog.txt 
+
+
+LOG(){
 tail -15 $LOGFILE > $TEMPLOG
-
-LOG=$(yad --center --width=800 --height=400 --title="My Log" --text-info=<$TEMPLOG \
---text="Last 15 items in my log file" \
+LOG=$(yad --center --width=800 --image=$LOGO --height=400 \
+--window-icon=$LOGO --image-on-top --title="Log Viewer" --text-info=<$TEMPLOG \
+--text="<b>Log Viewer by KM4ACK</b>\rLast 15 items in $LOGFILE" \
+--button="Select Log File":4 \
 --button="Delete Log:3" \
 --button="Show More:2" \
 --button="Exit:1" \
 )
 
 RC=$?
-if [ $RC == '1' ]
-then 
+if [ $RC == '1' ]; then
 exit 0
-elif [ $RC == '2' ]
-then
-yad --center --wrap --width=800 --height=400 --title="My Log" --text-info=<$LOGFILE
-elif [ $RC == '3' ]
-then
+elif [ $RC == '2' ]; then
+yad --center --wrap --width=800 --height=400 --title="Log Viewer" \
+--window-icon=$LOGO --image-on-top --image=$LOGO --text-info=<$LOGFILE \
+--text="<b>Log Viewer by KM4ACK</b>\rDisplaying $LOGFILE" \
+--button="Main Screen":2 \
+--button="Exit":1
+BUT=$?
+	if [ $BUT = '2' ]; then
+	LOG
+	elif [ $BUT = '1' ];then
+	exit
+	fi
+elif [ $RC == '3' ]; then
 rm $LOGFILE
+touch $LOGFILE
+elif [ $RC == '4' ]; then
+LOG=$(yad --center --wrap --width=400 --form --height=400 --title="Log Viewer" \
+--window-icon=$LOGO --image-on-top --image=$LOGO \
+--text="<b>Log Viewer by KM4ACK</b>" \
+--button="Save":2 \
+--button="Cancel":1 \
+--field="Choose Log File":FL )
+BUT=$?
+LOG=$(echo $LOG | awk -F "|" '{print $1}')
+	if [ $BUT = '2' ]; then
+	echo "LOGFILE=$LOG" > $MYPATH/.showlog.conf
+	LOGFILE=$LOG
+	LOG
+	elif [ $BUT = '1' ]; then
+	LOG
+	fi
 fi
+}
+LOG
