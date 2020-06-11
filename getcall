@@ -2,11 +2,13 @@
 
 #Call sign lookup for raspberry pi
 #20200416 km4ack
+#20200610 last edit
+#comment out anything that involves calling n0agi server
+#for lookup because it often returns busy and gives no results
 LOOKUP(){
 CALL=$(yad --center --width=200 --wrap --window-icon=$HOME/Pi-ISS/ISS.png --title="Call Sign Lookup" --text="<b>Call Sign Lookup</b> \r by KM4ACK" --text-align=center \
 --form --separator="|" --item-separator="," \
---field="Callsign to Lookup" '' \
---field="USA Callsign":CHK 'true'
+--field="Callsign to Lookup" ''
 )
 BUT=$?
 
@@ -17,37 +19,37 @@ fi
 #timer window while wait on first curl command
 yad --width=300 --height=75 --title="Sending" --timeout=2 --timeout-indicator=top --no-buttons --center --text="Getting Data" &
 
-USCALL=$(echo $CALL | awk -F "|" '{print $2}')
+#USCALL=$(echo $CALL | awk -F "|" '{print $2}')
 CALL=$(echo $CALL | awk -F "|" '{print $1}')
 CALL1=$CALL
 
-
-if [ $USCALL = "TRUE" ]; then
+#section commented out due to n0agi server failures
+#if [ $USCALL = "TRUE" ]; then
 #look up US call on N0AGI server
-LOOKCALL=$(curl -s https://call3.n0agi.com/$CALL/p/)
-CALL=$(echo $LOOKCALL | awk -F "|" '{print $1}' | sed 's/<CALL>//')
-CLASS=$(echo $LOOKCALL | awk -F "|" '{print $2}')
-NAME=$(echo $LOOKCALL | awk -F "|" '{print $10" "$11" "$12}')
-ADDRESS=$(echo $LOOKCALL | awk -F "|" '{print $13}')
-CITY=$(echo $LOOKCALL | awk -F "|" '{print $14" "$15","$16}')
-EXPIRE=$(echo $LOOKCALL | awk -F "|" '{print $24}')
+#LOOKCALL=$(curl -s https://call3.n0agi.com/$CALL/p/)
+#CALL=$(echo $LOOKCALL | awk -F "|" '{print $1}' | sed 's/<CALL>//')
+#CLASS=$(echo $LOOKCALL | awk -F "|" '{print $2}')
+#NAME=$(echo $LOOKCALL | awk -F "|" '{print $10" "$11" "$12}')
+#ADDRESS=$(echo $LOOKCALL | awk -F "|" '{print $13}')
+#CITY=$(echo $LOOKCALL | awk -F "|" '{print $14" "$15","$16}')
+#EXPIRE=$(echo $LOOKCALL | awk -F "|" '{print $24}')
 
-yad --center --width=350 --wrap --window-icon=$HOME/Pi-ISS/ISS.png --title="Call Sign Lookup" --text="<b>Call Sign Lookup</b> \r by KM4ACK" --text-align=center \
---form --separator="|" --item-separator="," \
---field="Callsign":RO "$CALL" \
---field="Class":RO "$CLASS" \
---field="Name":RO "$NAME" \
---field="Address":RO "$ADDRESS" \
---field="City ST ZIP":RO "$CITY" \
---field="License Expires":RO "$EXPIRE" \
---button="Exit:1" \
---button="Lookup Another:2"
-BUTTON=$?
-	if [ $BUTTON = 1 ] || [ $BUTTON = 252 ]; then
-	exit
-	fi
+#yad --center --width=350 --wrap --window-icon=$HOME/Pi-ISS/ISS.png --title="Call Sign Lookup" --text="<b>Call Sign Lookup</b> \r by KM4ACK" --text-align=center \
+#--form --separator="|" --item-separator="," \
+#--field="Callsign":RO "$CALL" \
+#--field="Class":RO "$CLASS" \
+#--field="Name":RO "$NAME" \
+#--field="Address":RO "$ADDRESS" \
+#--field="City ST ZIP":RO "$CITY" \
+#--field="License Expires":RO "$EXPIRE" \
+#--button="Exit:1" \
+#--button="Lookup Another:2"
+#BUTTON=$?
+#	if [ $BUTTON = 1 ] || [ $BUTTON = 252 ]; then
+#	exit
+#	fi
 
-else
+#else
 
 yad --width=300 --height=75 --title="Sending" --timeout=2 --timeout-indicator=top --no-buttons --center --text="Getting Data" &
 FILE=/run/user/1000/call.txt
@@ -69,7 +71,7 @@ yad --center --width=350 --wrap --window-icon=$HOME/Pi-ISS/ISS.png --title="Call
 --button="Exit:1" \
 --button="Lookup Another:2"
 BUTTON=$?
-fi
+#fi
 
 	if [ $BUTTON = 2 ]; then
 	LOOKUP
