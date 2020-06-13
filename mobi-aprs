@@ -1,0 +1,97 @@
+#!/bin/bash
+
+#script to connect mobilinkd TNC for aprs
+#20200602 KM4ACK
+
+#special thanks to Rich for loaning me a TNC3 to test with
+MYPATH=$HOME/patmenu2
+LOGO=$MYPATH/pmlogo.png
+clear
+KISS=$(pidof kissattach)
+DIRE=$(pidof direwolf)
+ARDOP=$(pidof piardopc)
+
+if [ -n "$KISS" ] || [ -n "$DIRE" ] || [ -n "$ARDOP" ]; then
+yad --title="Stop Modems" --width=400 --height=100 \
+--image $LOGO --window-icon=$LOGO --image-on-top --text-align=center --on-top \
+--center --form --text="\r\r\r\rIt appears that other modems are running. Please \
+stop all modems and try again." \
+--button=gtk-ok
+exit 1
+fi
+#give user some feedback
+yad --center --timeout=10 --timeout-indicator=top --no-buttons --height=300 --width=300 \
+--title="Scanning" --image $LOGO --window-icon=$LOGO --image-on-top \
+--text="Scanning for device. This takes about 20 seconds to complete. \
+Another notice will appear once a connection to the device is established." &
+
+#scan for bluetooth device and write to file
+hcitool scan > $HOME/Desktop/scan.txt
+echo "Scan complete"
+
+#Decide if its a TNC 2 or 3
+TNC2=$(cat $HOME/Desktop/scan.txt | grep -i TNC2)
+TNC3=$(cat $HOME/Desktop/scan.txt | grep -i TNC3)
+if [ -z "$TNC2" ]
+then 
+MAC=$(cat $HOME/Desktop/scan.txt | grep -i mobi | awk '{ print $1 }')
+TNC=3
+elif [ -z "$TNC3" ]
+then
+MAC=$(cat $HOME/Desktop/scan.txt | grep -i mobi | awk '{ print $1 }')
+TNC=2
+fi
+
+#set correct connection commmand
+if [ $TNC = "2" ]
+then
+#CONNECT="sudo rfcomm connect /dev/rfcomm0 $MAC"
+CONNECT="sudo rfcomm bind /dev/rfcomm0 $MAC"
+elif [ $TNC = "3" ]
+then
+CONNECT="sudo rfcomm bind /dev/rfcomm0 $MAC 6"
+#CONNECT="sudo rfcomm connect /dev/rfcomm0 $MAC 6"
+fi
+
+#See if device was found and connect if found
+if [ -z "$MAC" ]
+then
+yad --title="Mobilinkd MODEM" --width=400 --height=100 \
+    --image $LOGO --window-icon=$LOGO --image-on-top --text-align=center --on-top \
+    --center --form --text="\r\r\r\rMobilinkd NOT FOUND" \
+    --button=gtk-ok
+      rm $HOME/Desktop/scan.txt
+exit 1
+else
+      #stop things that might conflict
+      sudo killall js8call kissattach direwolf >> /dev/null 2>&1
+yad --center --timeout=6 --timeout-indicator=top --no-buttons --height=300 --width=300 \
+--title="Detected" --image $LOGO --window-icon=$LOGO --image-on-top \
+--text="Mobilinkd TNC $TNC detected. Just a few more seconds." &
+      rm $HOME/Desktop/scan.txt
+      #create bluetooth->serial connection
+      $CONNECT &
+      sleep 5
+
+fi
+
+#verify that piardopc is running
+PIDPIC=$(ls /dev | grep rfcomm0)
+if [ -z "$PIDPIC" ]
+then
+yad --title="FAILED" --width=400 --height=100 \
+    --image $LOGO --window-icon=$LOGO --image-on-top --text-align=center \
+    --center --form --text="The Mobilinkd Modem FAILED to Start" \
+    --button=gtk-ok
+else
+yad --title="Mobilinkd MODEM" --width=400 --height=100 \
+    --image $LOGO --window-icon=$LOGO --image-on-top --text-align=center --on-top \
+    --center --form --text="\r\r\r\rThe Mobilinkd Modem has Started" \
+    --button="STOP MODEM"
+sudo rfcomm release /dev/rfcomm0
+fi
+
+
+
+
+
