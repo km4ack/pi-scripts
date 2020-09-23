@@ -1,0 +1,63 @@
+#!/bin/bash
+
+#install PTE & SSE
+#20200117 km4ack
+
+#create directories if needed
+mkdir -p $HOME/Downloads
+mkdir -p $HOME/security
+mkdir -p $HOME/bin
+
+#install java if needed
+if ! hash java 2>/dev/null; then
+echo;echo "Installing Java"
+echo;echo;sleep 2
+sudo apt install -y default-jdk
+fi
+
+#create files needed for startup scripts
+touch $HOME/bin/securetext
+touch $HOME/bin/securefile
+
+#download PTE & move to security folder
+cd $HOME/Downloads
+wget https://paranoiaworks.mobi/download/files/PTE-PC.zip
+unzip PTE-PC.zip
+rm PTE-PC.zip
+cp Paranoia\ Text\ Encryption/pte.jar $HOME/security/pte.jar
+cd $HOME/Downloads
+rm -rf Paranoia\ Text\ Encryption
+
+#download SSE & move to security folder
+cd $HOME/Downloads
+wget https://paranoiaworks.mobi/download/files/SSEFilePC.zip
+unzip SSEFilePC.zip
+rm SSEFilePC.zip
+cd SSEFilePC
+cp ssefencgui.jar $HOME/security/ssefencgui.jar
+cd $HOME/Downloads
+rm -rf SSEFilePC
+
+#create scripts to start both files
+cat > $HOME/bin/securetext <<EOF
+#!/bin/bash
+
+java -jar $HOME/security/pte.jar
+
+EOF
+
+cat > $HOME/bin/securefile <<EOF
+#!/bin/bash
+
+java -jar $HOME/security/ssefencgui.jar
+
+EOF
+
+#make scripts exec
+cd $HOME/bin
+chmod +x securefile securetext
+
+cd $HOME/security
+wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/otp
+chmod +x otp
+ln -sf $HOME/security/otp $HOME/bin/otp
