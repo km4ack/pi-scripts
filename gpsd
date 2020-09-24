@@ -1,3 +1,6 @@
+#The -b switch was added per https://github.com/km4ack/pi-build/issues/144
+#km4ack 24SEPT2020
+
 # Default settings for the gpsd init script and the hotplug wrapper.
 
 # Start the gpsd daemon automatically at boot time
