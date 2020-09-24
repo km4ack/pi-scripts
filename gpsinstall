@@ -26,6 +26,10 @@ wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/gpsd -P /etc/def
 
 echo "refclock SHM 0 offset 0.5 delay 0.2 refid NMEA" >> /etc/chrony/chrony.conf
 
+#line below added per this issue - https://github.com/km4ack/pi-build/issues/146
+#24SEPT2020
+ln -s /lib/systemd/system/gpsd.service /etc/systemd/system/multi-user.target.wants/
+
 echo "";echo "";echo ""
 echo "#############################################################################################"
 echo "#instructions at https://raw.githubusercontent.com/km4ack/pi-scripts/master/gps-instruction #"
