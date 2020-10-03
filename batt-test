@@ -1,0 +1,76 @@
+#!/bin/bash
+
+#This script will help when testing battery duration running a raspberry pi.
+#29SEPT2020 KM4ACK
+x=1
+DATE=$(date)
+FILEDATE=$(date +%d%b%Y-%H%M%S)
+FILE=$HOME/Desktop/batterytest-$FILEDATE.txt
+
+HELP(){
+cat << EOF
+
+This script is designed to help test the run time
+of a battery. When you run the script, set the time
+of duration for the test in hours. The script will
+make a date/time entry every 10 minutes in a text
+file located on your desktop. You can review the
+text file to see if your pi completted the test before
+the battery was depleted. You also have the option
+of shutting down the pi after the test is complete
+to avoid a power fail shutdown which has the possibility
+of corrupting your SD card.
+
+EOF
+read -n 1 -s -r -p "Press any key to continue"
+clear
+}
+
+clear
+
+if [ $1 = 'help' ];then
+HELP
+fi
+
+cat <<EOF
+
+Running a pi until a power failure has the potential
+to corrupt the SD card. It is recommended that you 
+back up your SD card before using this script.
+
+EOF
+read -p "Continue? y/n " ANS
+if [ $ANS != 'y' ] && [ $ANS != 'Y' ];then
+exit
+fi
+
+clear
+
+echo "********************************"
+echo "********Whole hours ONLY********"
+echo "********************************"
+read -p "How many hours should we run the test? " ANS
+echo
+read -p "Auto shutdown when test completes? y/n " SHUTANS
+MIN=$(($ANS*60))
+CYCLES=$(($MIN/10+1))
+echo "Test started at $DATE" >> $FILE
+echo "Test set to run for $ANS hours" >> $FILE
+while [ $x -le "$CYCLES" ]
+do
+  clear
+  date >> $FILE
+  TESTTIME=$(($x*10-10))
+  echo;echo;echo "Time in 10 minute increments"
+  echo "Minutes since test began $TESTTIME"
+  echo "Cycle number - $x"
+  echo;echo "Press ctrl+c to abort"
+  x=$(( $x + 1 ))
+  sleep 600
+done
+
+echo "Test ended before battery depleted" >> $FILE
+
+if [ $SHUTANS = 'y' ] || [ $SHUTANS = 'Y' ]; then
+sudo shutdown -h now
+fi
