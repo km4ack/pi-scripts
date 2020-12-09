@@ -1,0 +1,47 @@
+#!/bin/bash
+
+#Full credit to Alex Fleak (KD0YTE) for the idea for this script. 
+#as it is based on his original work posted on the BAP forum
+# https://groups.io/g/KM4ACK-Pi/topic/adding_solar_flux_and_a_index/78788335?p=,,,20,0,0,0::recentpostdate%2Fsticky,,,20,2,0,78788335
+#09DEC2020
+
+DIR=/run/user/$UID
+HELPFILE=$HOME/Desktop/solar-help.txt
+
+if [ "$1" = "help" ] 2>&1 </dev/null; then 
+echo "Downloading help file"
+wget -q -O $HOME/Desktop/solar-help.txt https://raw.githubusercontent.com/km4ack/pi-scripts/master/solar-help
+echo "The help file is on your desktop"
+exit
+fi 
+
+#Download solar data
+wget -O $DIR/solarrss.php http://www.hamqsl.com/solarrss.php
+
+#get data to individual text files
+grep solarflux $DIR/solarrss.php > $DIR/sflux.txt
+grep aindex $DIR/solarrss.php > $DIR/aindex.txt
+grep kindex $DIR/solarrss.php | head -1 > $DIR/kindex.txt
+grep sunspots $DIR/solarrss.php > $DIR/sunspots.txt
+
+#clean up aindex file
+sed -i 's/<aindex>//' $DIR/aindex.txt
+sed -i 's/<\/aindex>//' $DIR/aindex.txt
+sed -i 's/^[[:space:]]*//g' $DIR/aindex.txt
+
+#clean up kindex file
+sed -i 's/<kindex>//' $DIR/kindex.txt
+sed -i 's/<\/kindex>//' $DIR/kindex.txt
+sed -i 's/^[[:space:]]*//g' $DIR/kindex.txt
+
+#clean up sflux file
+sed -i 's/<solarflux>//' $DIR/sflux.txt
+sed -i 's/<\/solarflux>//' $DIR/sflux.txt
+sed -i 's/^[[:space:]]*//g' $DIR/sflux.txt
+
+#clean up sunspots file
+sed -i 's/<sunspots>//' $DIR/sunspots.txt
+sed -i 's/<\/sunspots>//' $DIR/sunspots.txt
+sed -i 's/^[[:space:]]*//g' $DIR/sunspots.txt
+
+rm $DIR/solarrss.php
