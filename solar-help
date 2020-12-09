@@ -1,0 +1,17 @@
+This help file is for the fetchsolar script.
+
+Open the .conkyrc file and look for the following line
+
+${font Arial:bold:size=18}${color White}Gridsquare ${alignr}${color Yellow}${execi 25 $HOME/bin/conky/grid | cut -c1-8}
+
+Copy/Paste the following two lines to your .conkrc file immediatly following the line above
+
+${font Arial:bold:size=18}${color White}SFI: ${color Yellow} ${exec cat /run/user/1000/sflux.txt} $alignr${color White}A: ${color Yellow}${exec cat /run/user/1000/aindex.txt}
+${font Arial:bold:size=18}${color White}Sunspots: ${color Yellow} ${exec cat /run/user/1000/sunspots.txt} $alignr${color White}K: ${color Yellow}${exec cat /run/user/1000/kindex.txt}
+
+
+Run crontab -e and add the following line to the very bottom
+*/60 * * * * /home/pi/bin/fetchsolar
+
+
+NOTE: You can change the size of the text in Conky by editing the font size above. By default it is size=18
