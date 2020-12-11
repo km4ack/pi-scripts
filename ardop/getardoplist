@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+set -e
 
 #This script will download the ardop list to the path set below
 #It is intended to be run by cron daily
@@ -10,71 +12,55 @@
 
 #path where files are located
 #must match path in findardop script
-MYPATH=~/Documents/ardop-list/
+MYPATH=~/Documents/ardop-list
 
 #make directory if it doesn't exist
 mkdir -p $MYPATH
 
+bands="80m 60m 40m 30m 20m 10m 6m 2m 70cm"
+
 #set variables for each list
-FILE=$MYPATH'ardoplist.txt'
-EIGHTY=$MYPATH'80mardoplist.txt'
-FORTY=$MYPATH'40mardoplist.txt'
-TWENTY=$MYPATH'20mardoplist.txt'
-THIRTY=$MYPATH'30mardoplist.txt'
+FILE=$MYPATH/ardoplist.txt
 
 #check internet connection
 echo "Please wait while we check your internet connection"
 echo "This may take up to a minute"
 wget -q --tries=5 --timeout=10 --spider http://google.com
 if [[ $? -eq 0 ]]; then
-	echo
-	echo "Connection Detected"
-	echo
-        echo "Please wait while files are download"
-	echo "This may take several minutes"
-	echo "Depending on your internet speed"
+  echo
+  echo "Connection Detected"
+  echo
+  echo "Please wait while files are download"
+  echo "This may take several minutes"
+  echo "Depending on your internet speed"
 else
-        echo "YOU ARE NOT CONNECTED TO THE INTERNET"
-	exit
+  echo "YOU ARE NOT CONNECTED TO THE INTERNET"
+  exit
 fi
 
-#remove old files before downloading new ones
-if	[ -f $THIRTY ]; then
-	rm $THIRTY
-fi
+for band in $bands
+do
+  BAND_FILE=$MYPATH/${band}ardoplist.txt
 
-if 	[ -f $FILE ]; then
-	rm $FILE
-fi
+  #remove old files before downloading new ones
+  if	[ -f $BAND_FILE ]; then
+	  rm $BAND_FILE
+  fi
 
-if      [ -f $EIGHTY ]; then
-        rm $EIGHTY
-fi
+  if 	[ -f $FILE ]; then
+	  rm $FILE
+  fi
 
-if      [ -f $FORTY ]; then
-        rm $FORTY
-fi
+  LAST_DATE=$(date)
+  #put date on top line of each file
+  echo "List Last Downloaded $LAST_DATE" >> $FILE
+  echo "List Last Downloaded $LAST_DATE" >> $BAND_FILE
 
-if 	[ -f $TWENTY ]; then
-	rm $TWENTY
-fi
+  #download list to individual files.
+  pat rmslist --mode ardop --force-download >> $FILE
+  pat rmslist --band $band --mode ardop --force-download >> $BAND_FILE
+  echo $band successfully downloaded
+done
 
-#put date on top line of each file
-echo "List Last Downloaded $(date)" >> $FILE
-echo "List Last Downloaded $(date)" >> $FORTY
-echo "List Last Downloaded $(date)" >> $EIGHTY
-echo "List Last Downloaded $(date)" >> $TWENTY
-echo "List Last Downloaded $(date)" >> $THIRTY
-
-#download list to individual files.
-pat rmslist --mode ardop --force-download >> $FILE
-
-pat rmslist --band 80m --mode ardop --force-download >> $EIGHTY
-
-pat rmslist --band 40m --mode ardop --force-download >> $FORTY
-
-pat rmslist --band 20m --mode ardop --force-download >> $TWENTY
-
-pat rmslist --band 30m --mode ardop --force-download >> $THIRTY
 echo
 echo All lists successfully downloaded
