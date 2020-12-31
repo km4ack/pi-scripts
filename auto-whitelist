@@ -1,0 +1,158 @@
+#!/bin/bash
+
+source $HOME/.whitelist-config > /dev/null 2>&1
+
+SUBJECT=WHITELIST
+TO=system@winlink.org
+WHITEFILE=$HOME/.whitelist.txt
+TEMP=/run/user/$UID/whitelist
+LOGFILE=$HOME/Documents/mylog.txt
+
+touch $WHITEFILE
+
+
+#Check to see if we have a whitelist
+MYLIST=$(cat $WHITEFILE)
+clear;echo;echo
+if [ -z $MYLIST ] && [ -z $1 ]; then
+echo "Please setup a whitelist. To get started run"
+echo "auto-whitelist setup"
+exit
+fi
+
+#verify we have a callsign to work with
+if [ -z $CALLSIGN ]; then
+clear;echo;echo
+echo "Call sign not set";echo
+read -p "What is your call sign? " CALL
+CALL=${CALL^^}
+echo "CALLSIGN=$CALL" > $HOME/.whitelist-config
+fi
+
+
+
+
+######################################
+#	WHITELIST SETUP
+######################################
+
+if [ "$1" = 'setup' ]; then
+EDITFILE(){
+#check to see if crontab entry exist
+WHITECRON=$(crontab -l | grep whitelist)
+	if [ -z "$WHITECRON" ]; then
+	clear;echo;echo
+	echo "Cronjob not set. It needs to be set"
+	echo "to update the whitelist automatically";echo
+	read -p "Would you like to set it now? y/n " ANS
+		if [ $ANS = Y ] || [ $ANS = y ]; then
+		crontab -l > /run/user/$UID/crontemp
+		echo "30 09 01 Jan,Apr,Jul,Oct * /home/pi/bin/auto-whitelist" >> /run/user/$UID/crontemp
+		crontab /run/user/$UID/crontemp
+		echo "Cronjob set to run every 3 months"
+		sleep 2
+		fi
+	fi	
+
+#check to see if whitelist exist already
+	if [ -f $WHITEFILE ]; then
+	clear;echo;echo
+	echo "==============================="
+	echo "  $CALLSIGN whitelist includes"
+	echo "==============================="
+	cat $WHITEFILE
+	else
+	clear;echo;echo
+	echo "No whitelist file found"
+	fi
+
+#menu to mod whitelist
+	echo; echo "(A)dd to list | (R)emove from list"
+	read -p "(D)elete list | E(x)it " ANS
+	if [ $ANS != D ] && [ $ANS != d ] && [ $ANS != X ] && [ $ANS != x ] && \
+	[ $ANS != a ] && [ $ANS != A ] && [ $ANS != r ] && [ $ANS != R ]; then
+	echo "INVALID CHOICE"
+	sleep 2
+	EDITFILE	
+	elif [ $ANS = D ] || [ $ANS = d ]; then
+	rm $WHITEFILE
+	echo "Whitelist file deleted"
+	sleep 2
+	EDITFILE
+	elif [ $ANS = X ] || [ $ANS = x ]; then
+	echo;echo "Would you like to manually"
+	read -p "update your whitelist now? y/n " ANS
+		if [ $ANS = Y ] || [ $ANS = y ];then
+		echo;echo "Sending whitelist update to Winlink system"
+		sleep 1
+		else
+		exit
+		fi
+	elif [ $ANS = A ] || [ $ANS = a ]; then
+	read -p "What would you like to add? " ADD
+	echo $ADD >> $WHITEFILE
+	echo "$ADD was added"
+	sleep 2
+	EDITFILE
+	elif [ $ANS = R ] || [ $ANS = r ]; then
+	echo "removing"
+	read -p "Which entry would you like to remove? " REMV
+	sed -i "s/$REMV//" $WHITEFILE
+	sed -i '/^$/d' $WHITEFILE
+	EDITFILE
+	fi
+}
+EDITFILE
+fi
+
+######################################
+#	MAIN SCRIPT
+######################################
+
+#COMPOSE EMAIL Function
+COMPOSE () {
+
+#Count body characters
+BODYCOUNT=${#BODY}
+NEWCOUNT=$(expr $BODYCOUNT + 1)
+
+#set date
+TODAY=$(date '+%Y/%m/%d %H:%M')
+TODAY1=$(date)
+
+#generate 12 random number
+NEW_UUID=$(cat /dev/urandom | tr -dc 'A-Z0-9' | fold -w 12 | head -n 1)
+
+#add .b2f to end of random number for new file name
+NEW_FILE=$HOME/.wl2k/mailbox/$CALLSIGN/out/$NEW_UUID".b2f"
+
+#create new file
+touch $NEW_FILE
+
+#add file contents
+echo "Mid: "$NEW_UUID >> $NEW_FILE
+echo "Body: "$NEWCOUNT >> $NEW_FILE
+echo "Content-Transfer-Encoding: 8bit" >> $NEW_FILE
+echo "Content-Type: text/plain; charset=ISO-8859-1" >> $NEW_FILE
+echo "Date: "$TODAY >> $NEW_FILE
+echo "From: "$CALLSIGN >> $NEW_FILE
+echo "Mbo: "$CALLSIGN >> $NEW_FILE
+echo "Subject: "$SUBJECT >> $NEW_FILE
+echo "To: "$TO >> $NEW_FILE
+echo "Type: Private" >> $NEW_FILE
+echo "" >> $NEW_FILE
+echo $BODY >> $NEW_FILE
+rm $TEMP > /dev/null 2>&1
+}
+
+touch $TEMP
+
+while read LINE
+	do 
+	LINE="Accept: $LINE"	
+	BODY=$LINE
+	COMPOSE
+done < $WHITEFILE
+
+pat connect telnet
+echo "$TODAY1 Winlink Whitelist updated" >> $LOGFILE
