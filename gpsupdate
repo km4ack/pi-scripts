@@ -1,0 +1,88 @@
+#!/bin/bash
+
+VERSION=1
+
+#script to change GPS in gpsd file and restart gpsd service
+#11JAN2021 KM4ACK
+
+#Verify YAD is installed
+if ! hash yad 2>/dev/null; then
+echo "Installing YAD....please wait"
+sudo apt install -y yad
+fi
+
+LOGO=/usr/share/icons/Adwaita/48x48/actions/mark-location.png
+
+#####################################
+#	notice to user
+#####################################
+cat <<EOF > /run/user/$UID/gpsintro.txt
+This script allows you to update the
+required files if you change between
+different GPS units.
+
+If you have trouble identifying your
+GPS, try unplugging all USB componets
+except your GPS and run this script
+again
+EOF
+
+INTRO=$(yad --width=400 --height=300 --text-align=center --center --title="GPS Update" \
+--image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
+--text-info</run/user/$UID/gpsintro.txt \
+--button="Continue":2 \
+--button="Exit":1 > /dev/null 2>&1)
+BUT=$?
+if [ $BUT = 252 ] || [ $BUT = 1 ]; then
+rm /run/user/$UID/gpsintro.txt
+exit
+fi
+rm /run/user/$UID/gpsintro.txt
+
+#######################################################
+#This section allows the user to identify the GPS unit#
+#######################################################
+
+
+yad --center --height="200" --width="200" --form --separator="|" --item-separator="|" --title="GPS" \
+--image $LOGO --window-icon=$LOGO --image-on-top \
+--text="\r\r\r\r\r<b><big>Connect your GPS to the pi</big></b>" \
+--button="Exit":1 \
+--button="Continue":2
+
+BUT=$?
+if [ $BUT = 1 ] || [ $BUT = 252 ]; then
+exit
+fi
+
+USB=$(ls /dev/serial/by-id)
+USB=$(echo $USB | sed "s/\s/|/g")
+
+GPS=$(yad --center --height="200" --width="300" --form --separator="|" --item-separator="|" --title="GPS" \
+--image $LOGO --window-icon=$LOGO --image-on-top \
+--text="Choose Your GPS" \
+--field="GPS":CB "$USB")
+BUT=$?
+if [ $BUT = 252 ] || [ $BUT = 1 ]; then
+echo exiting
+exit
+fi
+
+GPS=$(echo $GPS | awk -F "|" '{print $1}')
+
+##############################################################
+#This section mods the gpsd file and restart the gpsd service#
+##############################################################
+cp /etc/default/gpsd /run/user/$UID
+sed -i 's/"\/dev\/serial.*//' /run/user/$UID/gpsd
+
+sed -i "s|DEVICES=|DEVICES=\"/dev/serial/by-id/$GPS\"|" /run/user/$UID/gpsd
+
+sudo cp /run/user/$UID/gpsd /etc/default/
+
+sudo systemctl restart gpsd
+
+yad --center --height="300" --width="300" --form --separator="|" --item-separator="|" --title="GPS" \
+--image $LOGO --window-icon=$LOGO --image-on-top \
+--text="\r\r\r\r\r<b><big>GPS had been updated</big></b>" \
+--button="Exit":1
