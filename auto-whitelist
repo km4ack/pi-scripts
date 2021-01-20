@@ -2,6 +2,8 @@
 
 source $HOME/.whitelist-config > /dev/null 2>&1
 
+MYEMAIL=test@winlink.org
+
 SUBJECT=WHITELIST
 TO=system@winlink.org
 WHITEFILE=$HOME/.whitelist.txt
@@ -14,7 +16,7 @@ touch $WHITEFILE
 #Check to see if we have a whitelist
 MYLIST=$(cat $WHITEFILE)
 clear;echo;echo
-if [ -z $MYLIST ] && [ -z $1 ]; then
+if [ -z "$MYLIST" ] && [ -z $1 ]; then
 echo "Please setup a whitelist. To get started run"
 echo "auto-whitelist setup"
 exit
@@ -28,8 +30,6 @@ read -p "What is your call sign? " CALL
 CALL=${CALL^^}
 echo "CALLSIGN=$CALL" > $HOME/.whitelist-config
 fi
-
-
 
 
 ######################################
@@ -75,7 +75,7 @@ WHITECRON=$(crontab -l | grep whitelist)
 	sleep 2
 	EDITFILE	
 	elif [ $ANS = D ] || [ $ANS = d ]; then
-	rm $WHITEFILE
+	rm $WHITEFILE $HOME/.whitelist-config
 	echo "Whitelist file deleted"
 	sleep 2
 	EDITFILE
@@ -154,5 +154,16 @@ while read LINE
 	COMPOSE
 done < $WHITEFILE
 
+TO=$MYEMAIL
+SUBJECT="Whitelist updated"
+BODY="The winlink whitelist has been update by your raspberry pi"
+COMPOSE
+
 pat connect telnet
+
+SUC=$(echo $?)
+if [ $SUC = 0 ]; then
 echo "$TODAY1 Winlink Whitelist updated" >> $LOGFILE
+elif [ $SUC = 1 ]; then
+echo "$TODAY1 Winlink Whitelist update FAILED!" >> $LOGFILE
+fi
