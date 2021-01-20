@@ -76,9 +76,10 @@ WHITECRON=$(crontab -l | grep whitelist)
 	EDITFILE	
 	elif [ $ANS = D ] || [ $ANS = d ]; then
 	rm $WHITEFILE $HOME/.whitelist-config
+	clear;echo;echo	
 	echo "Whitelist file deleted"
-	sleep 2
-	EDITFILE
+	echo "Please restart auto-whitelist"
+	exit
 	elif [ $ANS = X ] || [ $ANS = x ]; then
 	echo;echo "Would you like to manually"
 	read -p "update your whitelist now? y/n " ANS
@@ -95,10 +96,11 @@ WHITECRON=$(crontab -l | grep whitelist)
 	sleep 2
 	EDITFILE
 	elif [ $ANS = R ] || [ $ANS = r ]; then
-	echo "removing"
 	read -p "Which entry would you like to remove? " REMV
 	sed -i "s/$REMV//" $WHITEFILE
 	sed -i '/^$/d' $WHITEFILE
+	echo "$REMV was removed"
+	sleep 1
 	EDITFILE
 	fi
 }
