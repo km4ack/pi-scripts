@@ -29,6 +29,7 @@ echo "Call sign not set";echo
 read -p "What is your call sign? " CALL
 CALL=${CALL^^}
 echo "CALLSIGN=$CALL" > $HOME/.whitelist-config
+CALLSIGN=$CALL
 fi
 
 
