@@ -1,9 +1,22 @@
 #!/bin/bash
 
-VERSION=1
+VERSION=2
 
 #script to change GPS in gpsd file and restart gpsd service
 #11JAN2021 KM4ACK
+#06JAN2021 edit to add serial GPS choice
+
+##################################################################
+#                                                                #
+#	#   #	#       #     #      #        #####  #   #       #
+#	#  #	# #   # #    ##     # #      #       #  #        #
+#	# #	#   #   #   # #    #   #    #        # #         #
+#	##	#       #  #####  #######  #         ##          #
+#	# #	#       #     #   #     #   #        # #         #
+#	#  #	#       #     #   #     #    #       #  #        #
+#	#   #	#       #     #   #     #     #####  #   #       #
+#                                                                #
+##################################################################
 
 #Verify YAD is installed
 if ! hash yad 2>/dev/null; then
@@ -11,7 +24,55 @@ echo "Installing YAD....please wait"
 sudo apt install -y yad
 fi
 
+#Verify GPS is installed
+if ! hash gpsd 2>/dev/null; then
+yad --center --height="300" --width="400" --form --separator="|" --item-separator="|" --title="GPS" \
+--image $LOGO --window-icon=$LOGO --image-on-top \
+--text="\r\r\r<b><big>GPS software not installed.\rPlease install and try again.\rUse Build a Pi to install GPS.</big></b>" \
+--button="Exit":1
+fi
+
 LOGO=/usr/share/icons/Adwaita/48x48/actions/mark-location.png
+
+#####################################
+#	serial GPS Only
+#	*not used with USB GPS*
+#####################################
+
+#Section used by hams that use a serial GPS hat like https://www.adafruit.com/product/2324
+
+SERIALGPS(){
+SERIALPORT=$(yad --form --width=420 --text-align=center --center --title="GPS Update" \
+--image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
+--text="<b>version $VERSION</b>" \
+--text="\rEnter serial port number for GPS" \
+--field="Serial Port Number" \
+--button="Continue":2 \
+--button="Exit":1)
+BUT=$?
+MYPORT=$(echo $SERIALPORT | awk -F "|" '{print $1}')
+	if [ $BUT = 252 ] || [ $BUT = 1 ]; then
+	exit
+	fi
+##############################################################
+#This section mods the gpsd file and restart the gpsd service#
+##############################################################
+cp /etc/default/gpsd /run/user/$UID
+sed -i 's/"\/dev\/serial.*//' /run/user/$UID/gpsd
+
+sed -i "s|DEVICES=|DEVICES=\"/dev/serial$MYPORT\"|" /run/user/$UID/gpsd
+
+sudo cp /run/user/$UID/gpsd /etc/default/
+
+sudo systemctl restart gpsd
+
+yad --center --height="300" --width="300" --form --separator="|" --item-separator="|" --title="GPS" \
+--image $LOGO --window-icon=$LOGO --image-on-top \
+--text="\r\r\r\r\r<b><big>GPS had been updated</big></b>" \
+--button="Exit":1
+exit
+}
+
 
 #####################################
 #	notice to user
@@ -29,6 +90,7 @@ EOF
 
 INTRO=$(yad --width=400 --height=300 --text-align=center --center --title="GPS Update" \
 --image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
+--text="<b>GPS Update v$VERSION by KM4ACK</b>" \
 --text-info</run/user/$UID/gpsintro.txt \
 --button="Continue":2 \
 --button="Exit":1 > /dev/null 2>&1)
@@ -40,13 +102,32 @@ fi
 rm /run/user/$UID/gpsintro.txt
 
 #######################################################
+#	Choose GPS Type :: Serial or USB	      #
+#######################################################
+GPSTYPE=$(yad --form --width=420 --text-align=center --center --title="GPS Update" \
+--image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
+--text="<b>version $VERSION</b>" \
+--text="\rChoose GPS Type" \
+--field="Type":CB "USB|Serial" \
+--button="Continue":2 \
+--button="Exit":1)
+BUT=$?
+if [ $BUT = 1 ] || [ $BUT = 252 ]; then
+exit
+fi
+MYGPS=$(echo $GPSTYPE | awk -F "|" '{print $1}')
+if [ $MYGPS = 'Serial' ]; then
+SERIALGPS
+fi
+
+#######################################################
 #This section allows the user to identify the GPS unit#
 #######################################################
 
 
 yad --center --height="200" --width="200" --form --separator="|" --item-separator="|" --title="GPS" \
 --image $LOGO --window-icon=$LOGO --image-on-top \
---text="\r\r\r\r\r<b><big>Connect your GPS to the pi</big></b>" \
+--text="\r\r\r<b><big>Connect your GPS to the pi</big></b>" \
 --button="Exit":1 \
 --button="Continue":2
 
@@ -60,7 +141,7 @@ USB=$(echo $USB | sed "s/\s/|/g")
 
 GPS=$(yad --center --height="200" --width="300" --form --separator="|" --item-separator="|" --title="GPS" \
 --image $LOGO --window-icon=$LOGO --image-on-top \
---text="Choose Your GPS" \
+--text="<b>Choose Your GPS</b>" \
 --field="GPS":CB "$USB")
 BUT=$?
 if [ $BUT = 252 ] || [ $BUT = 1 ]; then
