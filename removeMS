@@ -7,13 +7,22 @@
 
 TEMP=/run/user/$UID/hosts
 
+echo "Would you like to put a hold on the"
+read -p "raspberrypi-sys-mods package? y/n " ANS
+
+if [ $ANS = 'y' ] || [ $ANS = 'Y' ];then
+echo "A hold will be placed on the raspberrypi-sys-mods package"
+echo "You can remove this hold at anytime by running"
+echo "sudo apt-mark unhold raspberrypi-sys-mods"
+
+#Hold raspberrypi-sys-mods package
+sudo apt-mark hold raspberrypi-sys-mods
+fi
+
 #Redirect calls to packages.microsoft.com to localhost
 cat /etc/hosts > $TEMP
 echo "0.0.0.0 packages.microsoft.com" >> $TEMP
 sudo cp $TEMP /etc/
-
-#Hold raspberrypi-sys-mods package
-sudo apt-mark hold raspberrypi-sys-mods
 
 #remove MS Key file
 sudo rm -vf /etc/apt/trusted.gpg.d/microsoft.gpg
