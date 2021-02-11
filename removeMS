@@ -5,6 +5,13 @@
 #reference - https://www.reddit.com/r/linux/comments/lbu0t1/microsoft_repo_installed_on_all_raspberry_pis/
 #reference - https://www.cyberciti.biz/linux-news/heads-up-microsoft-repo-secretly-installed-on-all-raspberry-pis-linux-os/
 
+#Verify not running as root user
+WHO=$(whoami)
+if [ $WHO = 'root' ]; then
+echo "No need to run this script as root"
+exit 1
+fi
+
 TEMP=/run/user/$UID/hosts
 
 echo "Would you like to put a hold on the"
