@@ -19,6 +19,12 @@
 VERSION=1
 LOGO=/usr/share/icons/PiXflat/48x48/apps/gnome-calculator.png
 
+if ! hash yad 2>/dev/null; then
+echo "installing yad"
+sudo apt update
+sudo apt-get install -y yad
+fi
+
 ###########################
 #	Menu Shortcut
 ###########################
@@ -66,9 +72,6 @@ sudo apt install -y wwl bc | yad --center --progress --pulsate --auto-close --no
 fi
 }
 
-if ! hash yad 2>/dev/null; then
-INSTALL
-fi
 
 if ! hash bc 2>/dev/null; then
 INSTALL
