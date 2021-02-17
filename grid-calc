@@ -4,6 +4,18 @@
 #wwl was written by VA3DB
 #17FEB2021 KM4ACK
 
+##################################################################
+#                                                                #
+#	#   #	#       #     #      #        #####  #   #       #
+#	#  #	# #   # #    ##     # #      #       #  #        #
+#	# #	#   #   #   # #    #   #    #        # #         #
+#	##	#       #  #####  #######  #         ##          #
+#	# #	#       #     #   #     #   #        # #         #
+#	#  #	#       #     #   #     #    #       #  #        #
+#	#   #	#       #     #   #     #     #####  #   #       #
+#                                                                #
+##################################################################
+
 VERSION=1
 LOGO=/usr/share/icons/PiXflat/48x48/apps/gnome-calculator.png
 
@@ -45,8 +57,12 @@ BUT=$?
 if [ $BUT = 1 ] || [ $BUT = 252 ]; then
 exit
 elif [ $BUT = 2 ]; then
-sudo apt update
-sudo apt install -y wwl bc
+sudo apt update | yad --center --progress --pulsate --auto-close --no-buttons --text-align=center --title="Grid Calc" \
+--text="Updateing Repository....This may take a few minutes\r<b>DO NOT CLOSE THIS WINDOW</b>\rDoing so will abort the process.\rThis window will auto close when the process completes"
+
+sudo apt install -y wwl bc | yad --center --progress --pulsate --auto-close --no-buttons --text-align=center --title="Grid Calc" \
+--text="Getting Depends....This may take a few minutes\r<b>DO NOT CLOSE THIS WINDOW</b>\rDoing so will abort the download.\rThis window will auto close when the process completes"
+
 fi
 }
 
