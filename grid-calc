@@ -1,0 +1,114 @@
+#!/bin/bash
+
+#GUI interface for wwl command line application
+#wwl was written by VA3DB
+#17FEB2021 KM4ACK
+
+VERSION=1
+LOGO=/usr/share/icons/PiXflat/48x48/apps/gnome-calculator.png
+
+###########################
+#	Menu Shortcut
+###########################
+MENUITEM(){
+cat > /run/user/$UID/grid-calc.desktop <<EOF
+[Desktop Entry]
+Name=Grid Calc
+GenericName=Check distance and bearing between 2 grids
+Comment=Check distance and bearing between 2 grids
+Exec=$HOME/bin/grid-calc
+Icon=/usr/share/icons/gnome/32x32/apps/kcalc.png
+Terminal=false
+Type=Application
+Categories=Utility;HamRadio
+EOF
+
+sudo mv /run/user/$UID/grid-calc.desktop /usr/share/applications/
+}
+if [ ! -f /usr/share/applications/grid-calc.desktop ]; then
+MENUITEM
+echo "Menu shortcut created for grid-calc"
+echo "Start grid-calc from the pi menu"
+exit 0
+fi
+
+###########################
+#	Install Depends
+###########################
+INSTALL(){
+yad --form --width=420 --text-align=center --center --title="Grid Calc" \
+--image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
+--text="<b>Grid Calc v $VERSION</b>\rDependencies missising!\rInstall now?" \
+--button="Install Dependencies":2 \
+--button="Exit":1
+BUT=$?
+if [ $BUT = 1 ] || [ $BUT = 252 ]; then
+exit
+elif [ $BUT = 2 ]; then
+sudo apt update
+sudo apt install -y wwl bc
+fi
+}
+
+if ! hash yad 2>/dev/null; then
+INSTALL
+fi
+
+if ! hash bc 2>/dev/null; then
+INSTALL
+fi
+
+if ! hash wwl 2>/dev/null; then
+INSTALL
+fi
+
+###########################
+#	Main Application
+###########################
+CALC(){
+GRIDS=$(yad --form --width=420 --text-align=center --center --title="Grid Calc" \
+--image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
+--text="<b>Grid Calc v $VERSION</b>\rEnter the two grids\rto be calculated" \
+--field="Your Grid" \
+--field="Other Grid" \
+--button="Continue":2 \
+--button="Exit":1)
+BUT=$?
+
+if [ $BUT = 252 ] || [ $BUT = 1 ]; then
+exit
+fi
+
+MYGRID=$(echo $GRIDS | awk -F "|" '{print $1}')
+GRID2=$(echo $GRIDS | awk -F "|" '{print $2}')
+
+RESULTS=$(wwl $MYGRID $GRID2)
+DISTANCE=$(echo $RESULTS | awk '{print $2}')
+DEGREES=$(echo $RESULTS | awk '{print $5}')
+#MILES=$(bc -l <<< "$DISTANCE*.6213712" | cut -c 1-5)
+MILES=$(bc -l <<< "$DISTANCE*.6213712" | xargs printf "%.2f\n")
+
+yad --form --width=420 --text-align=center --center --title="Grid Calc" \
+--image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
+--text="<b>Grid Calc v $VERSION</b>\rRESULTS" \
+--field="Distance is $DISTANCE Kilometers or $MILES Miles":LBL \
+--field="Bearing is $DEGREES Degrees":LBL \
+--button="Calulate Another":2 \
+--button="Exit":1
+BUT=$?
+if [ $BUT = 1 ] || [ $BUT = 252 ]; then
+exit
+elif [ $BUT = 2 ]; then
+CALC
+fi
+
+}
+CALC
+
+
+
+
+
+
+
+
