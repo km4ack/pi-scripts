@@ -1,10 +1,10 @@
 #!/bin/bash
 
-VERSION=2
+VERSION=3
 
 #script to change GPS in gpsd file and restart gpsd service
-#11JAN2021 KM4ACK
-#06JAN2021 edit to add serial GPS choice
+#reference - https://www.linux-magazine.com/Issues/2018/210/Tutorial-gpsd
+#11JAN2021 KM4ACK 
 
 ##################################################################
 #                                                                #
@@ -18,13 +18,133 @@ VERSION=2
 #                                                                #
 ##################################################################
 
+LOGO=/usr/share/icons/Adwaita/48x48/actions/mark-location.png
+
 #Verify YAD is installed
 if ! hash yad 2>/dev/null; then
 echo "Installing YAD....please wait"
 sudo apt install -y yad
 fi
 
-#Verify GPS is installed
+#####################################
+#	Help File
+#####################################
+HELP(){
+cat <<EOF > /run/user/$UID/gpsintro.txt
+GPS Update Tool Version $VERSION by KM4ACK 
+
+This tool allows you to update the required files 
+when you change between different GPS units/types.
+
+USB GPS DEVICES:
+Multiple USB choices may be available to choose
+from if you have several USB devices connected
+to your pi. If you have trouble identifying which 
+of the choices is your GPS, try  unplugging all 
+USB componets except  your GPS and run this script 
+again.
+
+STREAM MOBILE PHONE GPS:
+Both your pi and your mobile phone MUST be
+on the same network for this to function.
+To stream your phone GPS you will need an 
+app on your phone. For iPhone see
+https://itunes.apple.com/us/app/gps-2-ip/id408625926?mt=8
+For Android phones see
+https://play.google.com/store/apps/details?id=io.github.tiagoshibata.gpsdclient
+Set the app in UDP or UDP Push mode. Set the IP
+address to be the same as your Raspberry Pi. To
+find the IP address of the Pi, run:
+hostname -I
+from the command line. After choosing "Phone" from
+the dropdown, again enter your Pi's IP address
+and the same port that you entered in the app
+on your phone. If you are in the field, your pi will
+likely be in "hotspot" mode. In this configuration
+connect your phone to the hotspot via WiFi. Then
+use the IP address of 10.10.10.10 both in this script
+and in the app on your phone.
+
+BLUETOOTH GPS:
+Bluetooth GPS is considered beta as I don't have a 
+bluetooth GPS unit to test with. This assumes that 
+the GPS unit is attach to an rfcomm port. You will 
+need to know the rfcomm port number to use this feature. 
+This script will not help you connect the GPS to the Pi
+via bluetooth. If you own a Bluetooth GPS and find that
+this section will not work for you, please file an
+issue ticket at github.
+https://github.com/km4ack/pi-scripts/issues
+
+Serial GPS:
+You will need to know the serial port number to 
+which the GPS is attached. After choosing serial
+GPS as your GPS type, enter the serial number
+that the GPS is attached to.
+
+CHANGELOG:
+To see the changelog for this script run:
+gpsupdate change
+from the command line.
+EOF
+
+INTRO=$(yad --width=650 --height=400 --text-align=center --center --title="GPS Update Tool" \
+--image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
+--text="<b>GPS Update v$VERSION by KM4ACK</b>" \
+--text-info</run/user/$UID/gpsintro.txt \
+--button="Exit":0 > /dev/null 2>&1 \
+--button="Continue":1)
+BUT=$?
+if [ $BUT = 252 ] || [ $BUT = 0 ]; then
+rm /run/user/$UID/gpsintro.txt
+exit
+fi
+rm /run/user/$UID/gpsintro.txt
+}
+
+#####################################
+#	Display Changelog
+#####################################
+CHANGELOG(){
+clear;echo;echo
+cat <<EOF>/run/user/$UID/changelog.txt
+Version 3 11FEB2021
+	add bluetooth GPS support 
+	add cell phone GPS support
+	add changelog function
+	add additional user instructions
+	change sed command when modding gpsd file
+	move USBGPS to funtion
+	move help file to function
+	add help option to main script
+	move main menu to function
+	bump version number
+Version 2 06FEB2021 
+	add serial GPS support
+	bump version number
+Verions 1 11JAN2021
+	script created to help swap between multiple GPS devices
+
+EOF
+
+INTRO=$(yad --width=650 --height=350 --text-align=center --center --title="GPS Update Tool by KM4ACK - Changelog"  --show-uri \
+--image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
+--text-info</run/user/$UID/changelog.txt \
+--button="Exit":2 > /dev/null 2>&1)
+BUT=$?
+if [ $BUT = 252 ] || [ $BUT = 2 ]; then
+rm /run/user/$UID/changelog.txt
+exit
+fi
+rm /run/user/$UID/changelog.txt
+exit
+}
+
+if [ $1 = 'change' ]>/dev/null 2>&1; then
+CHANGELOG
+fi
+
+#Verify gpsd is installed
 if ! hash gpsd 2>/dev/null; then
 yad --center --height="300" --width="400" --form --separator="|" --item-separator="|" --title="GPS" \
 --image $LOGO --window-icon=$LOGO --image-on-top \
@@ -32,17 +152,53 @@ yad --center --height="300" --width="400" --form --separator="|" --item-separato
 --button="Exit":1
 fi
 
-LOGO=/usr/share/icons/Adwaita/48x48/actions/mark-location.png
-
 #####################################
-#	serial GPS Only
-#	*not used with USB GPS*
+#	Phone GPS Function
 #####################################
 
-#Section used by hams that use a serial GPS hat like https://www.adafruit.com/product/2324
+PHONEGPS(){
+PHONEPORT=$(yad --form --width=420 --text-align=center --center --title="GPS Update Tool" \
+--image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
+--text="<b>version $VERSION</b>" \
+--text="\rEnter IP addr and port number for GPS\rSee help file for more information" \
+--field="IP Addr" \
+--field="Port Number" \
+--button="Continue":2 \
+--button="Exit":1)
+BUT=$?
+
+MYIP=$(echo $PHONEPORT | awk -F "|" '{print $1}')
+MYPORT=$(echo $PHONEPORT | awk -F "|" '{print $2}')
+	if [ $BUT = 252 ] || [ $BUT = 1 ]; then
+	exit
+	fi
+
+##############################################################
+#This section mods the gpsd file and restart the gpsd service#
+##############################################################
+cp /etc/default/gpsd /run/user/$UID
+
+sed -i "s|DEVICES=.*|DEVICES=\"udp://$MYIP:$MYPORT\"|" /run/user/$UID/gpsd
+
+sudo cp /run/user/$UID/gpsd /etc/default/
+
+sudo systemctl restart gpsd
+
+yad --center --height="300" --width="300" --form --separator="|" --item-separator="|" --title="GPS" \
+--image $LOGO --window-icon=$LOGO --image-on-top \
+--text="\r\r\r\r\r<b><big>GPS had been updated</big></b>" \
+--button="Exit":1
+exit
+}
+
+#####################################
+#	serial GPS Function
+#####################################
+
+#For those that use a serial GPS hat like https://www.adafruit.com/product/2324
 
 SERIALGPS(){
-SERIALPORT=$(yad --form --width=420 --text-align=center --center --title="GPS Update" \
+SERIALPORT=$(yad --form --width=420 --text-align=center --center --title="GPS Update Tool" \
 --image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
 --text="<b>version $VERSION</b>" \
 --text="\rEnter serial port number for GPS" \
@@ -58,9 +214,8 @@ MYPORT=$(echo $SERIALPORT | awk -F "|" '{print $1}')
 #This section mods the gpsd file and restart the gpsd service#
 ##############################################################
 cp /etc/default/gpsd /run/user/$UID
-sed -i 's/"\/dev\/serial.*//' /run/user/$UID/gpsd
 
-sed -i "s|DEVICES=|DEVICES=\"/dev/serial$MYPORT\"|" /run/user/$UID/gpsd
+sed -i "s|DEVICES=.*|DEVICES=\"/dev/serial$MYPORT\"|" /run/user/$UID/gpsd
 
 sudo cp /run/user/$UID/gpsd /etc/default/
 
@@ -73,57 +228,51 @@ yad --center --height="300" --width="300" --form --separator="|" --item-separato
 exit
 }
 
-
 #####################################
-#	notice to user
+#	bluetooth GPS Function
 #####################################
-cat <<EOF > /run/user/$UID/gpsintro.txt
-This script allows you to update the
-required files if you change between
-different GPS units.
 
-If you have trouble identifying your
-GPS, try unplugging all USB componets
-except your GPS and run this script
-again
-EOF
+#Section used by hams that use a serial GPS hat like https://www.adafruit.com/product/2324
 
-INTRO=$(yad --width=400 --height=300 --text-align=center --center --title="GPS Update" \
---image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
---text="<b>GPS Update v$VERSION by KM4ACK</b>" \
---text-info</run/user/$UID/gpsintro.txt \
---button="Continue":2 \
---button="Exit":1 > /dev/null 2>&1)
-BUT=$?
-if [ $BUT = 252 ] || [ $BUT = 1 ]; then
-rm /run/user/$UID/gpsintro.txt
-exit
-fi
-rm /run/user/$UID/gpsintro.txt
-
-#######################################################
-#	Choose GPS Type :: Serial or USB	      #
-#######################################################
-GPSTYPE=$(yad --form --width=420 --text-align=center --center --title="GPS Update" \
+BLUEGPS(){
+BLUEPORT=$(yad --form --width=420 --text-align=center --center --title="GPS Update Tool" \
 --image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
 --text="<b>version $VERSION</b>" \
---text="\rChoose GPS Type" \
---field="Type":CB "USB|Serial" \
+--text="\rEnter rfcomm port number for GPS" \
+--field="Rfcomm Port Number" \
 --button="Continue":2 \
 --button="Exit":1)
 BUT=$?
-if [ $BUT = 1 ] || [ $BUT = 252 ]; then
-exit
-fi
-MYGPS=$(echo $GPSTYPE | awk -F "|" '{print $1}')
-if [ $MYGPS = 'Serial' ]; then
-SERIALGPS
-fi
+MYPORT=$(echo $BLUEPORT | awk -F "|" '{print $1}')
+	if [ $BUT = 252 ] || [ $BUT = 1 ]; then
+	exit
+	fi
 
+##############################################################
+#This section mods the gpsd file and restart the gpsd service#
+##############################################################
+cp /etc/default/gpsd /run/user/$UID
+
+sed -i "s|DEVICES=.*|DEVICES=\"/dev/rfcomm$MYPORT\"|" /run/user/$UID/gpsd
+
+sudo cp /run/user/$UID/gpsd /etc/default/
+
+sudo systemctl restart gpsd
+
+yad --center --height="300" --width="300" --form --separator="|" --item-separator="|" --title="GPS" \
+--image $LOGO --window-icon=$LOGO --image-on-top \
+--text="\r\r\r\r\r<b><big>GPS had been updated</big></b>" \
+--button="Exit":1
+exit
+}
+
+#####################################
+#	USB GPS Function
+#####################################
+USBGPS(){
 #######################################################
 #This section allows the user to identify the GPS unit#
 #######################################################
-
 
 yad --center --height="200" --width="200" --form --separator="|" --item-separator="|" --title="GPS" \
 --image $LOGO --window-icon=$LOGO --image-on-top \
@@ -155,9 +304,8 @@ GPS=$(echo $GPS | awk -F "|" '{print $1}')
 #This section mods the gpsd file and restart the gpsd service#
 ##############################################################
 cp /etc/default/gpsd /run/user/$UID
-sed -i 's/"\/dev\/serial.*//' /run/user/$UID/gpsd
 
-sed -i "s|DEVICES=|DEVICES=\"/dev/serial/by-id/$GPS\"|" /run/user/$UID/gpsd
+sed -i "s|DEVICES=.*|DEVICES=\"/dev/serial/by-id/$GPS\"|" /run/user/$UID/gpsd
 
 sudo cp /run/user/$UID/gpsd /etc/default/
 
@@ -167,3 +315,34 @@ yad --center --height="300" --width="300" --form --separator="|" --item-separato
 --image $LOGO --window-icon=$LOGO --image-on-top \
 --text="\r\r\r\r\r<b><big>GPS had been updated</big></b>" \
 --button="Exit":1
+}
+
+MAIN(){
+#######################################################
+#    Choose GPS Type :: Serial,USB,Bluetooth,Phone    #
+#######################################################
+GPSTYPE=$(yad --form --width=420 --text-align=center --center --title="GPS Update Tool" \
+--image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
+--text="GPS Update Tool <b>v$VERSION</b> by KM4ACK" \
+--field="Choose GPS Type or Help":CB "Help|USB|Serial|Bluetooth|Phone" \
+--button="Continue":2 \
+--button="Exit":1)
+BUT=$?
+if [ $BUT = 1 ] || [ $BUT = 252 ]; then
+exit
+fi
+MYGPS=$(echo $GPSTYPE | awk -F "|" '{print $1}')
+if [ $MYGPS = 'Serial' ]; then
+SERIALGPS
+elif [ $MYGPS = 'Bluetooth' ]; then
+BLUEGPS
+elif [ $MYGPS = 'Phone' ]; then
+PHONEGPS
+elif [ $MYGPS = 'USB' ]; then
+USBGPS
+elif [ $MYGPS = 'Help' ]; then
+HELP
+MAIN
+fi
+}
+MAIN
