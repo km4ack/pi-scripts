@@ -1,0 +1,192 @@
+#!/bin/bash
+
+#script connects to bluetooth CAT device
+#and starts FLRIG
+#Special thanks to Brian, AB6D for sharing the bluetooth device me
+#and contribution to the script!
+#06FEB2021
+
+#===============================================
+#To use this script, be sure it is placed in 
+#the ~/bin directory on your build a pi system.
+#Make it executable with chmod +x btflrig
+#and run it with btflrig help
+#===============================================
+
+##################################################################
+#                                                                #
+#	#   #	#       #     #      #        #####  #   #       #
+#	#  #	# #   # #    ##     # #      #       #  #        #
+#	# #	#   #   #   # #    #   #    #        # #         #
+#	##	#       #  #####  #######  #         ##          #
+#	# #	#       #     #   #     #   #        # #         #
+#	#  #	#       #     #   #     #    #       #  #        #
+#	#   #	#       #     #   #     #     #####  #   #       #
+#                                                                #
+#################################################################
+
+CONFIG=/home/pi/bin/.btflrig.mac
+touch $CONFIG
+source $CONFIG
+
+#######################################
+#	Generate Help File	      #
+#######################################
+
+HELP(){
+clear
+cat <<EOF>/run/user/$UID/btflrig.help
+
+You can return to this help file at any time by running
+"btflrig help" at the terminal. 
+
+NAVIGATING THIS HELP FILE:
+Press "q" to exit this help file
+Press the space bar for the next screen of the help file.
+
+SETUP:
+Use the GUI bluetooth interface found next to the clock
+to connect with the CAT bluetooth device (SPP-CA).
+The passcode is "1234". You will get an error that indicates
+no usable services are found on the device. This is
+expected. 
+
+Once the above is complete, run "btflrig scan" from the
+terminal window. This will scan for the new CAT device
+and obtain the MAC address which is needed so we can 
+connect to the new device. Occasionally the first scan
+will fail to obtain the MAC address of the new device and 
+you will receive an error alert. Should this occur, run 
+the "btflrig scan" command again.
+
+Finally, run "btflrig menu" from the terminal window
+and this script will create a menu shortcut that can
+be used to start the bluetooth service and open FLRIG.
+
+FLRIG SETUP:
+In FLRIG, navigate to Config>Setup>transceiver.
+On the configuration page choose your Yaesu rig from
+the top drop down box labeled rig. In the next box, choose
+"/dev/rfcomm7" which will be near the bottom of the list.
+If /dev/rfcomm7 isn't found in the list, you can enter it
+manually in the box. Now set the baud rate to 9600. Make sure
+your the baud rate on your radio is also set to 9600. This
+is labeled CAT rate in your radio menu. All other 
+settings in FLRIG should be left at default. Now press
+the "Init" button in the bottom right corner of the 
+configuration window in FLRIG.
+
+PAT MENU SETUP:
+Open Pat Menu and click on Settings/Config. Now click
+Create New Config File. Verify your call is correct. 
+Change rig control to equal yes.
+In the KISS Command box enter
+sudo /usr/sbin/kissattach /dev/rfcomm7
+In the RIG Command box enter
+/usr/local/bin/rigctl -m 4
+For the Yaesu 817 I set HF Mode to RTTY and 2M mode
+to PKTFM. Others are probably ok left at default.
+Now click the "Create" button at the bottom and name
+the new config file. I use "BT-RIG#" for my names.
+Now use Pat Menu to load the new config file that
+you just created.
+EOF
+
+cat /run/user/$UID/btflrig.help | less
+clear;echo;echo
+echo "You can open the help file again by running"
+echo "\"btflrig help\" at anytime or you can place"
+echo "the help document on your desktop."
+read -p "Place on your desktop y/n ? " ANS
+if [ $ANS = 'y' ] || [ $ANS = 'Y' ]; then
+cat /run/user/$UID/btflrig.help | tail -n +8 > $HOME/Desktop/btflrig-help.txt
+fi
+}
+
+#######################################
+#	Create Menu Shortcut	      #
+#######################################
+
+MENUITEM(){
+cat <<EOF>/run/user/$UID/btflrig.desktop
+[Desktop Entry]
+Name=BT-Flrig
+GenericName=Amateur Radio Rig Control
+Comment=Amateur Radio Communications
+Exec=/home/pi/bin/btflrig
+Icon=flrig
+Terminal=false
+Type=Application
+Categories=Network;HamRadio;
+NoDisplay=false
+EOF
+
+sudo mv /run/user/$UID/btflrig.desktop /usr/share/applications/
+}
+
+#######################################
+#	Scan for Mac Addr	      #
+#######################################
+SCAN(){
+FILE=/run/user/$UID/bt.txt
+echo "scanning for device......please wait"
+hcitool scan > $FILE
+MAC=$(grep SPP-CA /run/user/$UID/bt.txt | awk '{print $1}')
+echo "MAC=$MAC" > $CONFIG
+}
+
+#######################################
+#	Check for user input	      #
+#######################################
+
+if [ $1 = 'scan' ]; then
+SCAN
+source $CONFIG
+	if [ -z $MAC ]; then
+	echo "Scan failed. Please try again"
+	exit 1	
+	else
+	echo "Scan complete. Next run \"btflrig menu\" to create a menu shortcut"
+	exit
+	fi
+elif [ $1 = 'menu' ]; then
+MENUITEM
+echo "Menu shortcut created"
+echo "Use menu item \"BT-Flrig\" found in the"
+echo "ham radio category of the pi menu to start"
+echo "FLRIG"
+exit 0
+elif [ $1 = 'help' ]; then
+HELP
+exit 0
+fi
+
+#######################################
+#	Main Connect Script	      #
+#######################################
+#sudo rfcomm connect /dev/rfcomm0 $MAC &
+#sleep 3
+#/usr/local/bin/flrig
+#release rfcomm once FLRIG is closed
+#sudo rfcomm release /dev/rfcomm0
+
+
+while :
+
+do
+
+	rfcomm show 7
+	connection_state=$?
+
+		while [ $connection_state -ne 0 ]
+		do
+		sudo rfcomm connect 7 $MAC &
+		sleep 2
+		rfcomm show 7
+		connection_state=$?
+		done
+
+/usr/local/bin/flrig
+sudo rfcomm release 7
+exit 0
+done
