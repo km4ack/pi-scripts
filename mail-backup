@@ -17,7 +17,7 @@ ARCH=old-email-backups
 
 #set a few variables
 CALL=$(grep MYCALLSIGN ~/patmenu2/config | sed 's/MYCALLSIGN=//')
-BKUPTIME=$(date +%Y%d%m-%H%M)
+BKUPTIME=$(date +%Y%m%d-%H%M)
 DATE=$(date)
 
 #check to see if user indicated path
