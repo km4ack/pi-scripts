@@ -186,7 +186,7 @@ do
 		connection_state=$?
 		done
 
-/usr/local/bin/flrig
+/usr/local/bin/flrig --config-dir $HOME/.btflrig
 sudo rfcomm release 7
 exit 0
 done
