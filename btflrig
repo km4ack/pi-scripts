@@ -5,6 +5,7 @@
 #Special thanks to Brian, AB6D for sharing the bluetooth device me
 #and contribution to the script!
 #06FEB2021
+#31MARCH2021 edit.
 
 #===============================================
 #To use this script, be sure it is placed in 
@@ -25,6 +26,15 @@
 #                                                                #
 #################################################################
 
+CHANGELOG(){
+
+31MARCH2021
+	update script to ask user for name
+	add version number
+	bump version number to 2
+}
+
+VERSION=2
 CONFIG=/home/pi/bin/.btflrig.mac
 touch $CONFIG
 source $CONFIG
@@ -129,9 +139,27 @@ sudo mv /run/user/$UID/btflrig.desktop /usr/share/applications/
 #######################################
 SCAN(){
 FILE=/run/user/$UID/bt.txt
+clear;echo;echo
 echo "scanning for device......please wait"
 hcitool scan > $FILE
-MAC=$(grep SPP-CA /run/user/$UID/bt.txt | awk '{print $1}')
+sed -i '1d' $FILE
+CHK=$(grep : $FILE)
+	if [ -z "$CHK" ]; then
+	clear;echo;echo
+	echo "Device not found. Check that the device"
+	echo "is firmly seated and the radio is on."
+	echo "Then run \"btflrig scan\" again"
+	exit 1
+	fi
+clear;echo;echo
+echo "           MAC ADDRESS           NAME"
+echo "        =================       ======"
+cat $FILE
+echo
+echo "Find your device in the line/list above"
+read -p "and enter the name of the device. " ANS
+
+MAC=$(grep -i "$ANS" /run/user/$UID/bt.txt | awk '{print $1}')
 echo "MAC=$MAC" > $CONFIG
 }
 
@@ -142,7 +170,7 @@ echo "MAC=$MAC" > $CONFIG
 if [ $1 = 'scan' ]; then
 SCAN
 source $CONFIG
-	if [ -z $MAC ]; then
+	if [ -z $MAC ] || [ "$MAC" = '...' ]; then
 	echo "Scan failed. Please try again"
 	exit 1	
 	else
