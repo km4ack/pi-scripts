@@ -16,14 +16,32 @@
 #                                                                #
 ##################################################################
 
-VERSION=1
+VERSION=2
 LOGO=/usr/share/icons/PiXflat/48x48/apps/gnome-calculator.png
 
+#get gps grid if available
+if [ -f /run/user/$UID/gridinfo.txt ]; then
+GPSGRID=$(cat /run/user/$UID/gridinfo.txt)
+fi
+
+#verify yad is installed on this machine
 if ! hash yad 2>/dev/null; then
 echo "installing yad"
 sudo apt update
 sudo apt-get install -y yad
 fi
+
+###########################
+#	Changelog
+###########################
+CHANGELOG(){
+version 2
+	add gps if available
+	add lat/long lookup
+	add changelog
+	build app from source
+	bump version number
+}
 
 ###########################
 #	Menu Shortcut
@@ -64,7 +82,7 @@ if [ $BUT = 1 ] || [ $BUT = 252 ]; then
 exit
 elif [ $BUT = 2 ]; then
 sudo apt update | yad --center --progress --pulsate --auto-close --no-buttons --text-align=center --title="Grid Calc" \
---text="Updating Repository....This may take a few minutes\r<b>DO NOT CLOSE THIS WINDOW</b>\rDoing so will abort the process.\rThis window will auto close when the process completes"
+--text="Updateing Repository....This may take a few minutes\r<b>DO NOT CLOSE THIS WINDOW</b>\rDoing so will abort the process.\rThis window will auto close when the process completes"
 
 sudo apt install -y wwl bc | yad --center --progress --pulsate --auto-close --no-buttons --text-align=center --title="Grid Calc" \
 --text="Getting Depends....This may take a few minutes\r<b>DO NOT CLOSE THIS WINDOW</b>\rDoing so will abort the download.\rThis window will auto close when the process completes"
@@ -78,8 +96,89 @@ INSTALL
 fi
 
 if ! hash wwl 2>/dev/null; then
-INSTALL
+	if [ -f /usr/local/man/man1/locator.1.gz ]; then
+	sudo rm /usr/local/man/man1/locator.1.gz
+	fi
+cd $HOME/Downloads
+echo "checking for latest wwl package"
+LATEST=$(curl -s http://www.db.net/downloads/ | grep wwl | awk '{print $2}' | sed 's/href="//;s/">//')
+DIR=$(echo $LATEST | sed 's/.tgz//')
+echo $DIR
+echo "downloading latest wwl package"
+wget http://www.db.net/downloads/$LATEST
+tar -xvf $LATEST
+cd $HOME/Downloads/$DIR
+echo "building wwl"
+make && sudo make install
+echo "build done...cleaning up"
+rm -rf $HOME/Downloads/$DIR
+rm $HOME/Downloads/$LATEST
 fi
+
+if [ ! -f /usr/local/bin/locator ]; then
+	if [ -f /usr/local/man/man1/locator.1.gz ]; then
+	sudo rm /usr/local/man/man1/locator.1.gz
+	fi
+cd $HOME/Downloads
+echo "checking for latest wwl package"
+LATEST=$(curl -s http://www.db.net/downloads/ | grep wwl | awk '{print $2}' | sed 's/href="//;s/">//')
+DIR=$(echo $LATEST | sed 's/.tgz//')
+echo $DIR
+echo "downloading latest wwl package"
+wget http://www.db.net/downloads/$LATEST
+tar -xvf $LATEST
+cd $HOME/Downloads/$DIR
+echo "building wwl"
+make && sudo make install
+echo "build done...cleaning up"
+rm -rf $HOME/Downloads/$DIR
+rm $HOME/Downloads/$LATEST
+fi
+
+###########################
+#	Locator
+###########################
+LOCATOR(){
+LOCATOR=$(yad --form --width=420 --text-align=center --center --title="Grid Calc" \
+--image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
+--text="<b>Grid Calc v $VERSION</b>\rGet Lat-Long\rfrom a grid square" \
+--field="Grid" \
+--button="Continue":2 \
+--button="Exit":1)
+BUT=$?
+
+GRID=$(echo $LOCATOR | awk -F "|" '{print $1}')
+
+if [ $BUT = 252 ] || [ $BUT = 1 ]; then
+exit
+elif [ $BUT = 2 ]; then
+CORD=$(locator $GRID)
+fi
+
+
+
+LONG=$(echo $CORD | awk '{print $7}')
+LONG1=$(echo $CORD | awk '{print $6}' | sed 's/(//;s/)//')
+LONG2="$LONG $LONG1"
+
+LAT=$(echo $CORD | awk '{print $11}')
+LAT1=$(echo $CORD | awk '{print $10}' | sed 's/(//;s/)//')
+LAT2="$LAT $LAT1"
+
+yad --form --width=420 --text-align=center --center --title="Grid Calc" \
+--image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
+--text="<b>Grid Calc v $VERSION</b>\r\rLatitude is $LAT2\rLongitude is $LONG2" \
+--button="Main Menu":2 \
+--button="Exit":1
+BUT=$?
+
+if [ $BUT = 252 ] || [ $BUT = 1 ]; then
+exit
+fi
+
+
+}
+
 
 ###########################
 #	Main Application
@@ -88,14 +187,18 @@ CALC(){
 GRIDS=$(yad --form --width=420 --text-align=center --center --title="Grid Calc" \
 --image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
 --text="<b>Grid Calc v $VERSION</b>\rEnter the two grids\rto be calculated" \
---field="Your Grid" \
+--field="Your Grid" "$GPSGRID" \
 --field="Other Grid" \
---button="Continue":2 \
+--button="Grid to Lat-Long":3 \
+--button="Calculate":2 \
 --button="Exit":1)
 BUT=$?
 
 if [ $BUT = 252 ] || [ $BUT = 1 ]; then
 exit
+elif [ $BUT = 3 ]; then
+LOCATOR
+CALC
 fi
 
 MYGRID=$(echo $GRIDS | awk -F "|" '{print $1}')
