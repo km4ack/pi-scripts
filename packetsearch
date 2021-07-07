@@ -1,0 +1,255 @@
+#!/bin/bash
+
+#script for quick Winlink packet station search 
+#16FEB2021 KM4ACK
+#06JULY2021 last edit
+VERSION=1
+
+#Default is to use USA grid map
+MAP=/home/pi/patmenu2/grid-map.pdf
+#Uncomment line below to use world grid map
+#MAP=/home/pi/patmenu2/worldgridmap.pdf
+
+UPDATEGRID(){
+CONFIG=$HOME/.wl2k/config.json
+WHO=$(whoami)
+clear;echo;echo
+HEADER
+cat <<EOF
+Distances are calculated based on the grid square in your Pat 
+configure file at the time of download. Normally this is your
+home grid square. If travelling, you may wish to update your
+grid based on the location you will be travelling to and download
+a new list which will reflect the actual grid from which you will
+be operating. 
+EOF
+echo;echo
+echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+echo "DO NOT USE THIS FEATURE WITHOUT AN INTERNET CONNECTION"
+echo "Doing so may result in loss of your current list"
+echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+read -p "Would you like to update your grid & download a new list? y/n " ANS
+if [ "$ANS" = 'Y' ] || [ $ANS = 'y' ]; then
+read -p "Six digit grid to use? " GRID
+sed -i "s/\"locator\": \".*\",/\"locator\": \"$GRID\",/" $CONFIG
+sudo killall pat
+sudo systemctl start pat@$WHO
+$HOME/patmenu2/getardoplist
+fi
+}
+
+VERIFY(){
+#This section used to verify dependancies installed
+if [ ! -f $HOME/bin/grid-calc ]; then
+GRIDCALC="Grid-Calc not installed"
+fi
+
+if [ ! -d $HOME/patmenu2 ]; then
+PATMENU="Pat Menu not installed"
+fi
+
+if ! hash pat 2>/dev/null; then
+PAT="Pat Winlink not installed"
+fi
+
+if [ ! -z "$GRIDCALC" ] || [ ! -z "$PATMENU" ] || [ ! -z "$PAT" ]; then
+echo "===================="
+echo "Dependancies Missing"
+echo "===================="
+echo "$GRIDCALC"
+echo "$PATMENU" 
+echo "$PAT"
+echo "Please use Build a Pi to install missing dependancies."
+exit
+fi
+}
+
+VERIFY
+
+MENUITEM(){
+cat > /run/user/$UID/packetsearch.desktop <<EOF
+[Desktop Entry]
+Name=PacketSearch
+GenericName=Search for Winlink Packet Gateways
+Comment=Search for Winlink Packet Gateways
+Exec=$HOME/bin/packetsearch
+Icon=/usr/share/icons/gnome/32x32/apps/openterm.png
+Terminal=true
+Type=Application
+Categories=Utility;HamRadio
+EOF
+
+sudo mv /run/user/$UID/packetsearch.desktop /usr/share/applications/
+}
+if [ ! -f /usr/share/applications/packetsearch.desktop ]; then
+MENUITEM
+echo "Menu shortcut created for PacketSearch"
+echo "Start PacketSearch from the pi menu"
+exit 0
+fi
+
+PACKETFILE=$HOME/patmenu2/ardop-list/packet.txt
+DATE=$(date +%m%d%Y)
+
+HEADER(){
+echo "===========PACKET SEARCH by KM4ACK=============="
+}
+
+PKTSEARCH(){
+clear;echo;echo
+HEADER
+read -p "Call sign to search for? " CALL
+
+clear;echo;echo
+HEADER
+echo "Call       Grid   Dist  Speed     Frequency"
+echo "================================================"
+RESULT=$(grep -i $CALL $PACKETFILE | awk '{print $1" "$2" "$3" "$5"-"$6" "$7}')
+
+if [ -z "$RESULT" ]; then
+echo "Nothing Found"
+fi
+echo $RESULT
+read -p "New Search? y/n " ANS
+
+case $ANS in
+
+	y | Y)
+	PKTSEARCH
+	;;
+	*)
+	break
+	;;
+esac
+}
+
+DISTSEARCH(){
+clear;echo;echo
+HEADER
+read -p "What is the distance to be searched? " DISTANCE
+
+FILE=$HOME/patmenu2/ardop-list/packet.txt
+NEWFILE=/run/user/$UID/temppacket.txt
+OUTFILE=/run/user/$UID/packetout.txt
+touch $NEWFILE
+cp $FILE $NEWFILE
+sed -i '/^$/d' $NEWFILE
+sed -i '1d' $NEWFILE
+sed -i '1d' $NEWFILE
+sed -i '1d' $NEWFILE
+sed -i '1d' $NEWFILE
+
+while read LINE; do
+	DIST=$(echo $LINE | awk '{print $3}')
+	if [ "$DIST" -le "$DISTANCE" ]; then
+	echo $LINE | awk '{print $1" "$2" "$3" "$5"-"$6" "$7}' >> $OUTFILE
+	echo $LINE | awk '{print $1" "$2" "$3" "$5"-"$6" "$7}'
+	else
+	break
+	fi
+done < $NEWFILE
+echo "End of search"
+read -p "Save list to desktop? y/n " ANS
+if [ $ANS = 'y' ] || [ $ANS = 'Y' ]; then
+cp $OUTFILE $HOME/Desktop/packet-list-distance-$DATE 
+fi
+rm $NEWFILE
+rm $OUTFILE
+#read -n 1 -s -r -p "Press any key to continue"
+}
+
+GRIDSEARCH(){
+OUTFILE=/run/user/$UID/packetout.txt
+clear;echo;echo
+read -p "Four Character Grid to search? " GRID
+if [ -z $GRID ]; then
+GRID=EM65
+fi
+grep -i $GRID $PACKETFILE | awk '{print $1" "$2" "$3" "$5"-"$6" "$7}'
+grep -i $GRID $PACKETFILE | awk '{print $1" "$2" "$3" "$5"-"$6" "$7}' > $OUTFILE
+read -p "Save list to desktop? y/n " ANS
+if [ $ANS = 'y' ] || [ $ANS = 'Y' ]; then
+cp $OUTFILE $HOME/Desktop/packet-list-grid-$DATE 
+fi
+rm $OUTFILE
+#read -n 1 -s -r -p "Press any key to continue"
+}
+
+GRIDCALC(){
+if [ ! -f $HOME/bin/grid-calc ]; then
+clear;echo;echo
+echo "Grid calc not installed"
+read -p "Install now? y/n " ANS
+	if [ $ANS = 'y' ] || [ $ANS = 'Y' ]; then
+	echo "installing....standby"
+	cd $HOME/bin
+	wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/grid-calc
+	chmod +x grid-calc
+	$HOME/bin/grid-calc
+	clear;echo;echo
+	echo "grid calc installed"
+	sleep 2
+	fi
+fi
+}
+
+MAINMENU(){
+clear;echo;echo
+HEADER
+cat <<EOF
+This script will help you find a Winlink packet 
+station. You can search for a specific station 
+by call, search by distance, or by grid. Enjoy!
+================================================
+
+EOF
+PS3="Please choose a number "
+SEARCH=("Call Search" "Distance Search" "Grid Search" "Download List" "Open Grid Map" "Open Grid Calc" "Update Grid Square" "Quit")
+select ITEM in "${SEARCH[@]}"; do
+case $ITEM in
+	"Distance Search")
+	DISTSEARCH
+	MAINMENU
+	;;
+	"Call Search")
+	PKTSEARCH
+	MAINMENU
+	;;
+	"Grid Search")
+	GRIDSEARCH
+	MAINMENU
+	;;
+	"Download List")
+	$HOME/patmenu2/getardoplist
+	MAINMENU
+	;;
+	"Open Grid Map")
+	xdg-open $MAP
+	echo "opening...standby"
+	sleep 2
+	MAINMENU
+	;;
+	"Open Grid Calc")
+	GRIDCALC
+	echo "opening grid calc"
+	$HOME/bin/grid-calc &
+	sleep 2
+	MAINMENU
+	;;
+	"Update Grid Square")
+	UPDATEGRID
+	MAINMENU
+	;;
+	"Quit")
+	echo "Goodbye"
+	exit 0
+	;;
+	*)
+	echo "Invalid Choice"
+	sleep 1
+	MAINMENU
+	;;
+esac
+done
+}
+MAINMENU
