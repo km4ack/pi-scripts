@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION=3
+VERSION=4
 
 #script to change GPS in gpsd file and restart gpsd service
 #reference - https://www.linux-magazine.com/Issues/2018/210/Tutorial-gpsd
@@ -108,6 +108,8 @@ rm /run/user/$UID/gpsintro.txt
 CHANGELOG(){
 clear;echo;echo
 cat <<EOF>/run/user/$UID/changelog.txt
+Version 4 06SEPT0221
+	add gpsd restart to main screen
 Version 3 11FEB2021
 	add bluetooth GPS support 
 	add cell phone GPS support
@@ -325,11 +327,21 @@ GPSTYPE=$(yad --form --width=420 --text-align=center --center --title="GPS Updat
 --image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
 --text="GPS Update Tool <b>v$VERSION</b> by KM4ACK" \
 --field="Choose GPS Type or Help":CB "Help|USB|Serial|Bluetooth|Phone" \
+--button="Restart GPSD":3 \
 --button="Continue":2 \
 --button="Exit":1)
 BUT=$?
 if [ $BUT = 1 ] || [ $BUT = 252 ]; then
 exit
+fi
+if [ $BUT = 3 ]; then
+echo "restarting gpsd service"
+sudo systemctl restart gpsd
+yad --center --height="300" --width="300" --form --separator="|" --item-separator="|" --title="GPS" \
+--image $LOGO --window-icon=$LOGO --image-on-top \
+--text="\r\r\r\r\r<b><big>gpsd service restarted</big></b>" \
+--button="Ok":1
+MAIN
 fi
 MYGPS=$(echo $GPSTYPE | awk -F "|" '{print $1}')
 if [ $MYGPS = 'Serial' ]; then
