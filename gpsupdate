@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION=4
+VERSION=5
 
 #script to change GPS in gpsd file and restart gpsd service
 #reference - https://www.linux-magazine.com/Issues/2018/210/Tutorial-gpsd
@@ -108,6 +108,8 @@ rm /run/user/$UID/gpsintro.txt
 CHANGELOG(){
 clear;echo;echo
 cat <<EOF>/run/user/$UID/changelog.txt
+Version 5 29OCT2021
+	add defaults for phone GPS
 Version 4 06SEPT0221
 	add gpsd restart to main screen
 Version 3 11FEB2021
@@ -159,12 +161,14 @@ fi
 #####################################
 
 PHONEGPS(){
+IP=*
+PORT=11123
 PHONEPORT=$(yad --form --width=420 --text-align=center --center --title="GPS Update Tool" \
 --image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
 --text="<b>version $VERSION</b>" \
 --text="\rEnter IP addr and port number for GPS\rSee help file for more information" \
---field="IP Addr" \
---field="Port Number" \
+--field="IP Addr" "$IP" \
+--field="Port Number" "$PORT" \
 --button="Continue":2 \
 --button="Exit":1)
 BUT=$?
