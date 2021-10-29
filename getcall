@@ -52,7 +52,7 @@ CALL1=$CALL
 #else
 
 yad --width=300 --height=75 --title="Sending" --timeout=2 --timeout-indicator=top --no-buttons --center --text="Getting Data" &
-FILE=/run/user/1000/call.txt
+FILE=/run/user/$UID/call.txt
 curl -s -k https://hamcall.net/call?callsign=$CALL1 | grep "</table>" -A 4 -m3 | tail -4 > $FILE
 
 NAME=$(cat $FILE | head -1 | sed 's/<B>//' | sed 's/<br>//' | awk -F "," '{print $1}')
