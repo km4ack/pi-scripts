@@ -1,0 +1,41 @@
+#!/bin/bash
+
+#This script will change the winlink port if it was misconfigured
+#during the upgrade to Pat Winlink 0.12.0
+#km4ack 02NOV2021
+
+PAT_CONFIG=$XDG_CONFIG_HOME/pat/config.json
+
+#Check pat version
+PAT_VERSION=$(pat version | awk '{print $2}' | sed 's/v0.//;s/.0//')
+
+if [ "$PAT_VERSION" -le 11 ]; then
+echo "pat version 0.11.0 detected"
+echo "this script only needs to be run"
+echo "with pat winlink 0.12.0 or later"
+exit
+else
+echo "pat version 12 or greater detected"
+fi
+
+#Determine current port configured
+OLDPORT=$(cat $PAT_CONFIG | grep http_addr | awk '{print $2}' | sed 's/.*://;s/",//')
+
+#Determine if EES is installed
+if [ -f /var/www/html/email.php ]; then
+NEWPORT=5000
+echo "EES Detected"
+else
+NEWPORT=8080
+fi
+
+#See if changes need to be made.
+if [ "$OLDPORT" != "$NEWPORT" ]; then
+echo "updating port"
+sed -i "s/127.0.0.1:$OLDPORT/127.0.0.1:$NEWPORT/" $PAT_CONFIG
+echo "port updated to $NEWPORT"
+else
+echo;echo "The port appears to be configured correctly"
+echo "Reach out again on the forum for additional help"
+echo "https://groups.io/g/KM4ACK-Pi/topics"
+fi
