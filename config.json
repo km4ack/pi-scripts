@@ -1,0 +1,72 @@
+{
+  "mycall": "N0CALL",
+  "secure_login_password": "PASSWORD",
+  "auxiliary_addresses": [],
+  "locator": "GRID",
+  "service_codes": [
+    "PUBLIC"
+  ],
+  "http_addr": "127.0.0.1:8080",
+  "motd": [
+    "Open source Winlink client - getpat.io"
+  ],
+  "connect_aliases": {
+    "telnet": "telnet://{mycall}:CMSTelnet@cms.winlink.org:8772/wl2k"
+  },
+  "listen": [],
+  "hamlib_rigs": {
+    "my-rig": {
+      "address": "127.0.0.1:4532",
+      "network": "tcp"
+    }
+  },
+  "ax25": {
+    "port": "wl2k",
+    "beacon": {
+      "every": 3600,
+      "message": "Winlink P2P",
+      "destination": "IDENT"
+    },
+    "rig": "my-rig"
+  },
+  "serial-tnc": {
+    "path": "/dev/ttyUSB0",
+    "baudrate": 9600,
+    "type": "Kenwood"
+  },
+  "winmor": {
+    "addr": "localhost:8500",
+    "inbound_bandwidth": 1600,
+    "drive_level": 0,
+    "rig": "",
+    "ptt_ctrl": false
+  },
+  "ardop": {
+    "addr": "localhost:8515",
+    "arq_bandwidth": {
+      "Forced": false,
+      "Max": 500
+    },
+    "rig": "my-rig",
+    "ptt_ctrl": false,
+    "beacon_interval": 0,
+    "cwid_enabled": true
+  },
+  "pactor": {
+    "path": "/dev/ttyUSB0",
+    "baudrate": 57600,
+    "rig": "",
+    "custom_init_script": ""
+  },
+  "telnet": {
+    "listen_addr": ":8774",
+    "password": ""
+  },
+  "gpsd": {
+    "enable_http": true,
+    "use_server_time": false,
+    "addr": "localhost:2947"
+  },
+  "schedule": {},
+  "version_reporting_disabled": false
+}
