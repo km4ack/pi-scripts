@@ -126,8 +126,17 @@ TODAY1=$(date)
 #generate 12 random number
 NEW_UUID=$(cat /dev/urandom | tr -dc 'A-Z0-9' | fold -w 12 | head -n 1)
 
+#verify which version of Pat and set path as needed
+PAT_VER=$(pat version | awk '{print $2}' | awk -F "." '{print $2}')
+
+if [ "$PAT_VER" -le 11 ]; then
+PAT_PATH="$HOME/.wl2k"
+elif [ "$PAT_VER" -ge 12 ]; then
+PAT_PATH="$HOME/.local/share/pat"
+fi
+
 #add .b2f to end of random number for new file name
-NEW_FILE=$HOME/.wl2k/mailbox/$CALLSIGN/out/$NEW_UUID".b2f"
+NEW_FILE=$PAT_PATH/mailbox/$CALLSIGN/out/$NEW_UUID".b2f"
 
 #create new file
 touch $NEW_FILE
