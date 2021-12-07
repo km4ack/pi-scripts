@@ -1,0 +1,96 @@
+#!/bin/bash
+
+#this script will automate a wordpress installation on Pi OS Bullseye
+
+
+#check for root access
+WHO=$(whoami)
+if [ $WHO = 'root' ]
+then
+echo
+else
+echo "script must be run as root"
+exit 0
+fi
+
+
+
+clear;echo;echo
+echo "###################################################"
+echo "#  This script will install WordPress on your Pi  #"
+echo "###################################################"
+read -n 1 -s -r -p "Press any key to continue"
+
+host=localhost
+newUser=wordpress
+newDb=wordpress
+TEMP=/run/user/$UID/index.html
+MYHOST=`hostname`
+mkdir -p /run/user/$UID
+
+#get password for wordpress database
+echo; read -p "Password for primary Wordpress database " newDbPassword
+
+
+echo "################################"
+echo "#  Creating database and user  #"
+echo "################################"
+#create the database & user
+commands="CREATE DATABASE \`${newDb}\`;CREATE USER '${newUser}'@'${host}' IDENTIFIED BY '${newDbPassword}';GRANT USAGE ON *.* TO '${newUser}'@'${host}' IDENTIFIED BY '${newDbPassword}';GRANT ALL privileges ON \`${newDb}\`.*
+TO '${newUser}'@'${host}';FLUSH PRIVILEGES;"
+#write results to mariadb
+echo "${commands}" | /usr/bin/mysql -u root
+echo "DONE"
+
+sudo service apache2 restart
+
+echo "##########################"
+echo "#  Installing Wordpress  #"
+echo "##########################"
+#download/install wordpress
+sudo wget https://wordpress.org/latest.zip -O /var/www/html/wordpress.zip
+cd /var/www/html
+sudo unzip wordpress.zip
+sudo rm wordpress.zip
+sudo chmod 755 wordpress -R
+sudo chown www-data wordpress -R
+
+#set html redirect
+echo "###############################################"
+echo "#  Updating index.html to point to wordpress  #"
+echo "###############################################"
+cat <<EOF > $TEMP
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="refresh" content="1; url='http://$MYHOST.local/wordpress/'" />
+  </head>
+  <body>
+    <p>Please follow <a href="https://$MYHOST.local/wordpress/">this link</a>.</p>
+  </body>
+</html>
+EOF
+
+cp $TEMP /var/www/html/index.html
+
+#give user feedback
+clear;echo;echo
+cat <<EOF
+
+Leave this screen open for reference or copy the info below!
+
+Wordpress files are installed. To complete the installation,
+open the web browser and navigate to http://127.0.0.1/wordpress/
+Use the following info to complete the installation
+
+datebase -      wordpress
+username -      wordpress
+password -      $newDbPassword
+database host - localhost
+table prefix -  wp_
+
+Enjoy!
+73, de KM4ACK
+
+EOF
+read -n 1 -s -r -p "Press any key to continue"
