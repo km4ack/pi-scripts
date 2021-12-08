@@ -1,0 +1,108 @@
+#!/bin/bash
+
+#This script installs screen if not already installed and
+#installs my script to autostart the WL2k gateway at boot.
+TEMP_DIR=/run/user/$UID
+
+MAIN(){
+
+NOTICE
+
+#install screen if not already
+if ! hash screen 2>/dev/null; then
+echo "#######################"
+echo "screen app not detected"
+echo "installing screen"
+echo "#######################"
+sleep 1
+sudo apt update
+sudo apt install -y screen
+fi
+
+GATEWAY_START
+BPQ_START
+
+echo; echo "Installation complete. linbpq should auto start at boot"
+echo "See gateway-commands.txt desktop after reboot"
+}
+
+#############
+#Sub-routines
+#############
+NOTICE(){
+clear;echo
+cat <<EOF
+#########################################
+    KM4ACK Gateway Auto Start Install
+#########################################
+This script will install screen if needed
+and install the KM4ACK gateway startup script.
+ 
+The function of this is to auto start your gateway 
+when the pi boots. 
+
+Enjoy! de KM4ACK
+
+EOF
+read -n 1 -s -r -p "Press any key to continue"
+echo ""
+}
+
+GATEWAY_START(){
+#create gateway start script and move to appropriate location
+echo "#################################"
+echo "installing gateway startup script"
+echo "#################################"
+cat <<"EOFF" > $TEMP_DIR/gateway-start
+#!/bin/bash
+
+#Start Direwolf
+/usr/bin/screen -S dw -d -m /usr/local/bin/direwolf -p
+sleep 2
+#Start kissattach
+LINK=$(ls -l /tmp/kisstnc | awk '{print $NF}')
+sudo /usr/sbin/kissattach $LINK wl2k
+sudo kissparms -c 1 -p wl2k
+
+#start bpq server
+cd $HOME/linbpq 
+/usr/bin/screen -S bpq -d -m $HOME/linbpq/linbpq
+
+#notice to user
+if [ ! -f $HOME/Desktop/gateway-commands.txt ]; then
+cat <<EOF > $HOME/Desktop/gateway-commands.txt
+###################################
+    KM4ACK Gateway Start Script
+###################################
+To verify direwolf stated you can run:
+screen -r dw
+To exit, press ctrl+a followed by d
+
+To verify LinBPQ started you can run:
+screen -r bpq
+To exit, press ctrl+a followed by d
+
+Need help configuring BPQ? See https://groups.io/g/bpq32/topics
+
+73, de KM4ACK
+
+EOF
+fi
+
+EOFF
+chmod +x $TEMP_DIR/gateway-start
+sudo mv $TEMP_DIR/gateway-start /usr/local/bin/
+}
+
+BPQ_START(){
+echo "##########################"
+echo "installing BPQ cron job"
+echo "##########################"
+crontab -l > /run/user/$UID/cron.txt
+echo "#Winlink Gateway Auto Start at Boot" >> /run/user/$UID/cron.txt
+echo "@reboot sleep 20 && /usr/local/bin/gateway-start" >> /run/user/$UID/cron.txt
+crontab /run/user/$UID/cron.txt
+}
+
+#Call main portion of script
+MAIN
