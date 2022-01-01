@@ -61,10 +61,10 @@ TO '${newUser}'@'${host}';FLUSH PRIVILEGES;"
 #write results to mariadb
 echo "${commands}" | /usr/bin/mysql -u root
 clear;echo;echo
+echo "hostname - "$host
 echo "Database name - "$newDb
 echo "Database user name- "$newUser
 echo "Database password - "$newDbPassword
-echo "hostname - "$host
 echo
 cat <<EOF
 The database has been created. Now 
