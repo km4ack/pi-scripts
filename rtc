@@ -7,7 +7,7 @@
 
 clear;echo;echo
 
-IC2ACTIVE=$(ls /dev/*i2c*)
+IC2ACTIVE=$(ls /dev/i2c-1)
 
 if [ $IC2ACTIVE = "/dev/i2c-1" ]
 then
