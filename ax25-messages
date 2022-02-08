@@ -1,0 +1,371 @@
+#!/bin/bash
+
+#this script will send messages over RF using ax25 & direwolf.
+#depends = ax25-tools, ax25-apps, direwolf, yad
+#Create menu item by running "./ax25-messages menu"
+#02FEB2022 KM4ACK
+
+VERSION=1
+LOG=/run/user/$UID/axlisten.log
+LOGBKUP=/run/user/$UID/axlisten.log.bkup
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+LOGO=/usr/share/icons/Adwaita/scalable/actions/send-to-symbolic.svg
+touch $LOG
+source $DIR/.ax25-messages.config > /dev/null 2>&1
+
+###########################
+#Depends Check
+###########################
+AXT=`dpkg -l | grep ax25-tools`
+if [ -z "$AXT" ]; then
+echo "ax25-tools not installed but required"
+exit
+fi 
+
+AXA=`dpkg -l | grep ax25-apps`
+if [ -z "$AXA" ]; then
+echo "ax25-apps not installed but required"
+exit
+fi 
+
+if ! hash direwolf 2>/dev/null; then
+echo "Direwolf not installed but required"
+fi
+
+YD=`dpkg -l | grep yad`
+if [ -z "YD" ]; then
+echo "Yad not installed"
+fi
+
+###########################
+#MAIN MENU
+###########################
+MAINMENU(){
+SYSTEM_CHECK
+MENU=$(yad --form --width=400 --image ${LOGO} --window-icon={LOGO} \
+--image-on-top --text="<b>ax25-messages v$VERSION</b> by KM4ACK\rMy Call - $CALL\r\rDirewolf - $DW\rKissattach - $KA\rAxlisten - $AL\r<b>$STATUS</b>" \
+--text-align=center --center --title="ax25-messages" \
+--button="Start Listening":1 \
+--button="Stop Listening":2 \
+--button="Send Message":3 \
+--button="Settings":4 )
+BUT=$?
+
+case ${BUT} in
+	1)
+	STARTUP
+	sleep 1
+	MSGCHECK &
+	KILLTHIS=$!
+	MAINMENU
+	;;
+	2)
+	echo "Stop Listening...."
+	rm $LOG $LOGBKUP /run/user/$UID/message.sh > /dev/null 2>&1
+	sudo killall axlisten direwolf kissattach rigctld > /dev/null 2>&1
+	kill $KILLTHIS > /dev/null 2>&1
+	MAINMENU
+	;;
+	3)
+	if [ ! -f /run/user/$UID/message.sh ]; then
+	yad --form --width=400 --text-align=center --center --title="ax25 messages" --text-align=center \
+	--image ${LOGO} --window-icon=${LOGO} --image-on-top \
+	--text="<b>Not Listening</b>\rWe must be listening\rbefore we can send messages." \
+	--button=gtk-ok
+	else
+	/run/user/$UID/message.sh &
+	fi
+	MAINMENU
+	;;
+	4)
+	MYCONFIG
+	;;
+	252)
+	exit
+	;;
+esac
+}
+
+cleanup()
+{
+	echo "Shutting down...."
+	rm $LOG $LOGBKUP /run/user/$UID/message.sh > /dev/null 2>&1
+	sudo killall axlisten direwolf kissattach rigctld > /dev/null 2>&1
+	kill $KILLTHIS > /dev/null 2>&1 #this kills the loop looking for messages
+}
+
+trap cleanup EXIT
+
+###########################
+#create config if not found
+###########################
+TEMPFILE=$DIR/temp-config
+CONFIG=$DIR/.ax25-messages.config
+if [ ! -f $CONFIG ]; then
+
+echo "#Config file for ax25-messages" > $TEMPFILE
+echo "#06FEB2022 KM4ACK" >> $TEMPFILE
+echo "" >> $TEMPFILE
+echo "" >> $TEMPFILE
+echo "CALL=N0CALL" >> $TEMPFILE
+echo "USERIGCTL=no" >> $TEMPFILE
+echo "RIGCTL=\"/usr/local/bin/rigctld -m 4\"" >> $TEMPFILE
+
+cp $TEMPFILE $CONFIG
+rm $TEMPFILE
+fi
+
+###########################
+#create the reply script
+###########################
+CREATE_REPLY(){
+cat <<"EOF" > /run/user/$UID/message.sh
+#!/bin/bash
+
+TMPCS=/run/user/$UID/tocall.txt
+touch $TMPCS
+NEWMSG(){
+source $TMPCS
+MSG=$(yad --center --on-top --width=400 --height=200 --window-icon= --form \
+--image-on-top --text="<b>ax25-messages</b> by KM4ACK" --text-align=center --title="Send Message" \
+--field="TO" "$TO" \
+--field="Message")
+BUT=$?
+#give user an exit path
+if [ $BUT = 252 ] || [ $BUT = 1 ]; then
+rm $TMPCS
+exit
+fi
+#process data
+TO=$(echo $MSG | awk -F "|" '{print $1}')
+MSG=$(echo $MSG | awk -F "|" '{print $2}')
+
+echo "TO=$TO" > $TMPCS
+
+#send beacon with message. wl2k is the port defined in the /etc/ax25/axports file.
+/usr/sbin/beacon -s -d "$TO" wl2k "$MSG"
+NEWMSG
+}
+NEWMSG
+EOF
+
+#make reply executable
+chmod +x /run/user/$UID/message.sh
+}
+
+###########################
+#Startup function
+###########################
+STARTUP(){
+source $DIR/.ax25-messages.config > /dev/null 2>&1
+CREATE_REPLY
+
+#Check & warn if FLRIG not started
+if [ "$USERIGCTL" = 'yes' ]; then
+
+	if [ -z `pidof flrig` ]; then
+	yad --form --width=400 --text-align=center --center --title="ax25 messages" --text-align=center \
+	--image ${LOGO} --window-icon=${LOGO} --image-on-top \
+	--text="<b>FLRIG NOT RUNNING</b>\rFLRIG is usually used for rig control\rYou can start FLRIG and continue or\rjust continue if using other rig control." \
+	--button="Continue":1 \
+	--button="Exit":2
+	BUT=$?
+		if [ $BUT = 2 ] || [ $BUT = 252 ]; then
+		exit
+		fi
+	fi
+fi
+
+#check if user is using rig control for PTT
+if [ "$USERIGCTL" = 'yes' ]; then #defined in config file.
+$RIGCTL & #defined in the config file
+sleep 1
+fi
+/usr/local/bin/direwolf -p &
+sleep 1
+LINK=$(ls -l /tmp/kisstnc | awk '{print $NF}')
+
+sudo /usr/sbin/kissattach $LINK wl2k
+sudo kissparms -c 1 -p wl2k
+
+sudo axlisten -a | tee $LOG &
+
+yad --form --width=200 --text-align=center --center --title="ax25 messages" --text-align=center \
+--image ${LOGO} --window-icon=${LOGO} --image-on-top \
+--text="<b>Modem Started</b>" \
+--button=gtk-ok
+
+}
+
+###########################
+#Message Processing
+###########################
+MSGPROCESS(){
+source $DIR/.ax25-messages.config > /dev/null 2>&1
+mv $LOG $LOGBKUP
+touch $LOG
+#kill axlisten so we can move the log file.
+sudo killall axlisten
+FROM=$(tail -2 $LOGBKUP | grep -i $CALL | awk '{print $3}')
+MSG=$(tail -1 $LOGBKUP | sed 's/0000  //')
+REPLYTO=$(tail -2 $LOGBKUP | grep -i $CALL | awk '{print $3}')
+
+#this if statement is critical to keep from looping
+if [ "$MSG" != 'ack' ] && [ "$FROM" != "$CALL" ]; then
+#send ack
+/usr/sbin/beacon -s -d "$REPLYTO" wl2k "ack"
+fi
+
+#verify message isn't our own before giving user notice.
+#This prevents echoing our sent messages back to the user.
+if [ "$FROM" != "$CALL" ]; then
+#popup window for new incoming messages
+yad --center --width=600 --wrap --window-icon= --title="New Message" \
+--image-on-top --text="<b>ax25-messages v$VERSION</b> by KM4ACK" --text-align=center --center --title="New Message" \
+--form --separator="|" --item-separator="," --field="From":RO "$FROM" \
+--field="Message":RO "$MSG" \
+--button=gtk-ok:1 &
+fi
+
+sleep .5
+sudo axlisten -a | tee $LOG &
+MSGCHECK
+}
+
+###########################
+#Listen for messages
+###########################
+MSGCHECK(){
+#Check for messages
+MSG=$(grep -i $CALL $LOG | tail -2 | head -1 | sed "s/.*$CALL//;s/.*://")
+while [ -z "$MSG" ]; do
+sleep 1
+MSG=$(grep -i $CALL $LOG | tail -2 | head -1 | sed "s/.*$CALL//;s/.*://")
+done
+MSGPROCESS
+}
+
+###########################
+#SETTINGS
+###########################
+#Update config file function
+MYCONFIG(){
+TEMPFILE=$DIR/temp-config
+CONFIG=$DIR/.ax25-messages.config
+source $CONFIG
+touch $TEMPFILE
+
+if [ "$USERIGCTL" = 'yes' ]; then
+USERIGCTL="yes|no"
+else
+USERIGCTL="no|yes"
+fi
+
+SETTING=$(yad --center --width=500 --wrap --window-icon={LOGO} \
+--image-on-top --text="<b>ax25-messages v$VERSION</b> by KM4ACK" --text-align=center --center --title="ax25-messages" \
+ --title="ax25-messages settings" --text="Please enter your call" \
+--form --separator="|" --item-separator="|" \
+--field="Current Callsign" "$CALL" \
+--field="Rig Control":CB "$USERIGCTL" \
+--field="Rigctl Command" "$RIGCTL"
+
+)
+BUT=$?
+
+if [ $BUT = 1 ] || [ $BUT = 252 ]; then
+MAINMENU
+fi
+
+if [ -z "$SETTING" ]; then
+exit
+fi
+
+CALL=$(echo $SETTING | awk -F "|" '{print$1}')
+CALL=${CALL^^}
+USERIGCTL=$(echo $SETTING | awk -F "|" '{print$2}')
+RIGCTL=$(echo $SETTING | awk -F "|" '{print$3}')
+
+echo "#Config file for ax25-messages" > $TEMPFILE
+echo "#06FEB2022 KM4ACK" >> $TEMPFILE
+echo "" >> $TEMPFILE
+echo "" >> $TEMPFILE
+echo "CALL=$CALL" >> $TEMPFILE
+echo "USERIGCTL=$USERIGCTL" >> $TEMPFILE
+echo "RIGCTL=\"$RIGCTL\"" >> $TEMPFILE
+
+cp $TEMPFILE $CONFIG
+rm $TEMPFILE
+MAINMENU
+}
+###########################
+#System Status Check
+###########################
+#This function is used in the GUI to tell the user what
+#is running.
+SYSTEM_CHECK(){
+DW=`pidof direwolf`
+KA=`pidof kissattach`
+AL=`pidof axlisten`
+#Set variables of apps 
+if [ -z $DW ]; then
+DW="Not Running"
+else
+DW="Running"
+fi
+if [ -z $KA ]; then
+KA="Not Running"
+else
+KA="Running"
+fi
+if [ -z $AL ]; then
+AL="Not Running"
+else
+AL="Running"
+fi
+if [ ! -z $DW ] && [ ! -z $KA ] && [ ! -z $AL ]; then
+STATUS="Listening for Messages"
+else
+STATUS="Not Listening"
+fi
+if [ -z "$CALL" ]; then
+CALL=N0CALL
+fi
+}
+
+#create menu item
+if [ $1 = 'menu' ]; then
+cat <<EOF > /run/user/$UID/ax25message.desktop
+[Desktop Entry]
+Name=AX25 Messages
+GenericName=AX25 Messages
+Comment=Messaging app that uses ax25
+Exec=/home/pi/bin/ax25-messages
+Icon=/usr/share/icons/Adwaita/scalable/actions/send-to-symbolic.svg
+Terminal=false
+Type=Application
+Categories=HamRadio
+EOF
+echo "menu item created"
+echo "start ax25-messages using the Pi menu."
+sudo mv /run/user/$UID/ax25message.desktop /usr/local/share/applications/ax25message.desktop
+exit
+fi
+
+MAINMENU
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
