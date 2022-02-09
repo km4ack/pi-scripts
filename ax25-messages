@@ -216,7 +216,7 @@ REPLYTO=$(tail -2 $LOGBKUP | grep -i $CALL | awk '{print $3}')
 #this if statement is critical to keep from looping
 if [ "$MSG" != 'ack' ] && [ "$FROM" != "$CALL" ]; then
 #send ack
-/usr/sbin/beacon -s -d "$REPLYTO" wl2k "ack"
+/usr/sbin/beacon -s -c "$CALL" -d "$REPLYTO" wl2k "ack"
 fi
 
 #verify message isn't our own before giving user notice.
