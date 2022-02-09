@@ -143,7 +143,7 @@ MSG=$(echo $MSG | awk -F "|" '{print $2}')
 echo "TO=$TO" > $TMPCS
 
 #send beacon with message. wl2k is the port defined in the /etc/ax25/axports file.
-source $HOME/bin/.ax25-messages.config
+source
 /usr/sbin/beacon -s -c $CALL -d "$TO" wl2k "$MSG"
 NEWMSG
 }
@@ -152,6 +152,8 @@ EOF
 
 #make reply executable
 chmod +x /run/user/$UID/message.sh
+#update script with correct source path
+sed -i "s|source|source $DIR/.ax25-messages.config|" /run/user/$UID/message.sh
 }
 
 ###########################
