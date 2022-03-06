@@ -2,16 +2,37 @@
 
 #script for quick Winlink packet station search 
 #16FEB2021 KM4ACK
-#06JULY2021 last edit
-VERSION=1
+#06MARCH2022 last edit KM4ACK
+VERSION=2
+
+CHANGELOG(){
+clear;echo;echo;HEADER
+cat <<EOF
+Version 2 06MARCH2022:
+Update config variable to accomadate new config file location in Pat 12
+Add pause if dependencies are missing to allow operator time to read
+improve distance search output
+improve grid search output
+add changelog
+EOF
+read -n 1 -s -r -p "Press any key to continue"
+}
 
 #Default is to use USA grid map
 MAP=/home/pi/patmenu2/grid-map.pdf
 #Uncomment line below to use world grid map
 #MAP=/home/pi/patmenu2/worldgridmap.pdf
 
-UPDATEGRID(){
+
+VERSION=$(pat version | awk -F "." '{print $2}')
+if [ "$VERSION" -ge '12' ]; then
+CONFIG="$HOME/.config/pat/config.json"
+else
 CONFIG=$HOME/.wl2k/config.json
+fi
+
+UPDATEGRID(){
+#CONFIG=$HOME/.wl2k/config.json
 WHO=$(whoami)
 clear;echo;echo
 HEADER
@@ -60,6 +81,7 @@ echo "$GRIDCALC"
 echo "$PATMENU" 
 echo "$PAT"
 echo "Please use Build a Pi to install missing dependancies."
+read -n 1 -s -r -p "Press any key to continue"
 exit
 fi
 }
@@ -85,6 +107,7 @@ if [ ! -f /usr/share/applications/packetsearch.desktop ]; then
 MENUITEM
 echo "Menu shortcut created for PacketSearch"
 echo "Start PacketSearch from the pi menu"
+read -n 1 -s -r -p "Press any key to continue"
 exit 0
 fi
 
@@ -94,6 +117,10 @@ DATE=$(date +%m%d%Y)
 HEADER(){
 echo "===========PACKET SEARCH by KM4ACK=============="
 }
+
+if [ $1 = 'changelog' ]; then
+CHANGELOG
+fi
 
 PKTSEARCH(){
 clear;echo;echo
@@ -127,7 +154,7 @@ DISTSEARCH(){
 clear;echo;echo
 HEADER
 read -p "What is the distance to be searched? " DISTANCE
-
+clear;echo;echo
 FILE=$HOME/patmenu2/ardop-list/packet.txt
 NEWFILE=/run/user/$UID/temppacket.txt
 OUTFILE=/run/user/$UID/packetout.txt
@@ -138,7 +165,9 @@ sed -i '1d' $NEWFILE
 sed -i '1d' $NEWFILE
 sed -i '1d' $NEWFILE
 sed -i '1d' $NEWFILE
-
+HEADER
+echo "Call       Grid   Dist  Speed     Frequency"
+echo "================================================"
 while read LINE; do
 	DIST=$(echo $LINE | awk '{print $3}')
 	if [ "$DIST" -le "$DISTANCE" ]; then
@@ -165,6 +194,10 @@ read -p "Four Character Grid to search? " GRID
 if [ -z $GRID ]; then
 GRID=EM65
 fi
+clear;echo;echo
+HEADER
+echo "Call       Grid   Dist  Speed     Frequency"
+echo "================================================"
 grep -i $GRID $PACKETFILE | awk '{print $1" "$2" "$3" "$5"-"$6" "$7}'
 grep -i $GRID $PACKETFILE | awk '{print $1" "$2" "$3" "$5"-"$6" "$7}' > $OUTFILE
 read -p "Save list to desktop? y/n " ANS
