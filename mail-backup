@@ -11,6 +11,9 @@
 #sleep for 30 seconds while pi boots
 sleep 30
 
+#get pat version
+PVERSION=$(pat version | awk -F "." '{print $2}')
+
 #set archive folder
 #DO NOT USE SPACES. Use "-" or "_" to serperate words.
 ARCH=old-email-backups
@@ -44,8 +47,15 @@ mv $DIR/email.bkup* $DIR/$ARCH/ >/dev/null 2>&1
 #create backup dir
 mkdir $DIR/email.bkup.$BKUPTIME
 
+#determine correct path depending on pat version
+if [ $PVERSION -ge '12' ]; then
+BACKUP_COMMAND="cp -r $HOME/.local/share/pat/mailbox/$CALL/* $DIR/email.bkup.$BKUPTIME"
+else
+BACKUP_COMMAND="cp -r $HOME/.wl2k/mailbox/$CALL/* $DIR/email.bkup.$BKUPTIME"
+fi
+
 #copy file to backup dir
-cp -r $HOME/.wl2k/mailbox/$CALL/* $DIR/email.bkup.$BKUPTIME
+$BACKUP_COMMAND
 
 #verify success and write to log file
 if [ $? = 0 ]; then
