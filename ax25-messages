@@ -1,17 +1,24 @@
 #!/bin/bash
 
-#this script will send messages over RF using ax25 & direwolf.
+#this script will send messages over RF using ax25 & a TNC.
 #depends = ax25-tools, ax25-apps, direwolf, yad
 #Create menu item by running "./ax25-messages menu"
 #02FEB2022 KM4ACK
 
-VERSION=1
+VERSION=2
 LOG=/run/user/$UID/axlisten.log
 LOGBKUP=/run/user/$UID/axlisten.log.bkup
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 LOGO=/usr/share/icons/Adwaita/scalable/actions/send-to-symbolic.svg
 touch $LOG
 source $DIR/.ax25-messages.config > /dev/null 2>&1
+
+#####################################
+#change log
+#version 2 29MARCH2022 KM4ACK
+#added mobilind TNC support
+#####################################
+
 
 ###########################
 #Depends Check
@@ -43,7 +50,7 @@ fi
 MAINMENU(){
 SYSTEM_CHECK
 MENU=$(yad --form --width=400 --image ${LOGO} --window-icon={LOGO} \
---image-on-top --text="<b>ax25-messages v$VERSION</b> by KM4ACK\rMy Call - $CALL\r\rDirewolf - $DW\rKissattach - $KA\rAxlisten - $AL\r<b>$STATUS</b>" \
+--image-on-top --text="<b>ax25-messages v$VERSION</b> by KM4ACK\rMy Call - $CALL\r\rDirewolf - $DW\rKissattach - $KA\rAxlisten - $AL\r Mobilinkd - $ML\r\r<b>$STATUS\r</b>" \
 --text-align=center --center --title="ax25-messages" \
 --button="Start Listening":1 \
 --button="Stop Listening":2 \
@@ -63,6 +70,7 @@ case ${BUT} in
 	echo "Stop Listening...."
 	rm $LOG $LOGBKUP /run/user/$UID/message.sh > /dev/null 2>&1
 	sudo killall axlisten direwolf kissattach rigctld > /dev/null 2>&1
+	sudo rfcomm release /dev/rfcomm8 > /dev/null 2>&1
 	kill $KILLTHIS > /dev/null 2>&1
 	MAINMENU
 	;;
@@ -91,6 +99,7 @@ cleanup()
 	echo "Shutting down...."
 	rm $LOG $LOGBKUP /run/user/$UID/message.sh > /dev/null 2>&1
 	sudo killall axlisten direwolf kissattach rigctld > /dev/null 2>&1
+	sudo rfcomm release /dev/rfcomm8 > /dev/null 2>&1
 	kill $KILLTHIS > /dev/null 2>&1 #this kills the loop looking for messages
 }
 
@@ -110,6 +119,8 @@ echo "" >> $TEMPFILE
 echo "CALL=N0CALL" >> $TEMPFILE
 echo "USERIGCTL=no" >> $TEMPFILE
 echo "RIGCTL=\"/usr/local/bin/rigctld -m 4\"" >> $TEMPFILE
+echo "TNC=direwolf" >> $TEMPFILE
+echo "MAC=" >> $TEMPFILE
 
 cp $TEMPFILE $CONFIG
 rm $TEMPFILE
@@ -184,12 +195,23 @@ if [ "$USERIGCTL" = 'yes' ]; then #defined in config file.
 $RIGCTL & #defined in the config file
 sleep 1
 fi
+
+if [ "$TNC" = 'direwolf' ]; then
 /usr/local/bin/direwolf -p &
 sleep 1
 LINK=$(ls -l /tmp/kisstnc | awk '{print $NF}')
-
 sudo /usr/sbin/kissattach $LINK wl2k
 sudo kissparms -c 1 -p wl2k
+elif [ "$TNC" = 'mobilinkd' ]; then
+	if [ "$TNCV" = 2 ]; then
+	sudo rfcomm bind /dev/rfcomm8 $MAC
+	elif [ "$TNCV" = 3 ]; then
+	sudo rfcomm bind /dev/rfcomm8 $MAC 6
+	fi
+sleep 1
+sudo /usr/sbin/kissattach /dev/rfcomm8 wl2k
+sudo kissparms -c 1 -p wl2k
+fi
 
 sudo axlisten -a | tee $LOG &
 
@@ -264,13 +286,32 @@ else
 USERIGCTL="no|yes"
 fi
 
+if [ "$TNC" = 'direwolf' ]; then
+TNC="direwolf|mobilinkd"
+else
+TNC="mobilinkd|direwolf"
+fi
+
+if [ -z $MAC ]; then
+MAC="not used for direwolf"
+fi
+
+if [ "$TNCV" = 2 ]; then
+TNCV="2|3"
+else
+TNCV="3|2"
+fi
+
 SETTING=$(yad --center --width=500 --wrap --window-icon={LOGO} \
 --image-on-top --text="<b>ax25-messages v$VERSION</b> by KM4ACK" --text-align=center --center --title="ax25-messages" \
- --title="ax25-messages settings" --text="Please enter your call" \
+ --title="ax25-messages settings" --text="ax25-messages settings\r" \
 --form --separator="|" --item-separator="|" \
 --field="Current Callsign" "$CALL" \
 --field="Rig Control":CB "$USERIGCTL" \
---field="Rigctl Command" "$RIGCTL"
+--field="Rigctl Command" "$RIGCTL" \
+--field="TNC":CB "$TNC" \
+--field="Mobilinkd TNC MAC addr" "$MAC" \
+--field="Mobilinkd TNC Version":CB "$TNCV"
 
 )
 BUT=$?
@@ -287,6 +328,9 @@ CALL=$(echo $SETTING | awk -F "|" '{print$1}')
 CALL=${CALL^^}
 USERIGCTL=$(echo $SETTING | awk -F "|" '{print$2}')
 RIGCTL=$(echo $SETTING | awk -F "|" '{print$3}')
+TNC=$(echo $SETTING | awk -F "|" '{print$4}')
+MAC=$(echo $SETTING | awk -F "|" '{print$5}')
+TNCV=$(echo $SETTING | awk -F "|" '{print$6}')
 
 echo "#Config file for ax25-messages" > $TEMPFILE
 echo "#06FEB2022 KM4ACK" >> $TEMPFILE
@@ -295,6 +339,9 @@ echo "" >> $TEMPFILE
 echo "CALL=$CALL" >> $TEMPFILE
 echo "USERIGCTL=$USERIGCTL" >> $TEMPFILE
 echo "RIGCTL=\"$RIGCTL\"" >> $TEMPFILE
+echo "TNC=$TNC" >> $TEMPFILE
+echo "MAC=\"$MAC\"" >> $TEMPFILE
+echo "TNCV=$TNCV" >> $TEMPFILE
 
 cp $TEMPFILE $CONFIG
 rm $TEMPFILE
@@ -309,6 +356,7 @@ SYSTEM_CHECK(){
 DW=`pidof direwolf`
 KA=`pidof kissattach`
 AL=`pidof axlisten`
+ML=`ls /dev | grep rfcomm8`
 #Set variables of apps 
 if [ -z $DW ]; then
 DW="Not Running"
@@ -325,7 +373,12 @@ AL="Not Running"
 else
 AL="Running"
 fi
-if [ ! -z $DW ] && [ ! -z $KA ] && [ ! -z $AL ]; then
+if [ -z $ML ]; then
+ML="Not connected"
+else
+ML="Connected"
+fi
+if [ ! -z $KA ] && [ ! -z $AL ]; then
 STATUS="Listening for Messages"
 else
 STATUS="Not Listening"
