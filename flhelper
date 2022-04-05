@@ -1,0 +1,255 @@
+#!/bin/bash
+
+#script to create new instances of FLRIG for multiple radios on one Pi.
+#21MARCH2022 KM4ACK
+
+VERSION=1
+BY="KM4ACK 21MARCH2022"
+
+#####################
+#	Main Menu
+#####################
+
+MAINMENU(){
+clear;echo
+#HEADER
+cat <<EOF
+FLRIG Helper version $VERSION :: $BY
+================================================
+This helper application will help you get
+multiple instances of FLRIG setup on the
+Pi and allow you to use it will multiple
+radios. See help for more details.
+================================================
+
+EOF
+PS3="Please choose a number "
+SEARCH=("Add New Rig" "Remove Rig" "Remove Original" "Help" "Quit")
+select ITEM in "${SEARCH[@]}"; do
+case $ITEM in
+	"Add New Rig")
+	ADDRIG
+	MAINMENU
+	;;
+	"Remove Rig")
+	LIST
+	MAINMENU
+	;;
+	"Remove Original")
+	ORIGINAL
+	MAINMENU
+	;;
+	"Help")
+	HELP
+	MAINMENU
+	;;
+	"Quit")
+	echo "Goodbye"
+	exit 0
+	;;
+	*)
+	echo "Invalid Choice"
+	sleep 1
+	MAINMENU
+	;;
+esac
+done
+}
+
+##################
+#Sub routines
+##################
+
+ADDRIG(){
+clear;echo;echo
+cat <<EOF
+###########################################
+Pick a name for the rig you wish to add. 
+Keep it simple. It is recommneded that you 
+use the model number for the rig. So for 
+Yaesu-817nd it is recommended that you 
+use "817"
+###########################################
+
+EOF
+read -p "What is the model number of the radio? " RIG
+#verify not empty
+if [ -z $RIG ]; then
+echo "Name cannot be empty"
+sleep 2
+ADDRIG
+fi
+#replace spaces with a "-"
+RIG=$(echo $RIG | sed 's/ /-/g')
+
+mkdir -p $HOME/flrig_conf
+
+CHECK=$(ls $HOME/flrig_conf | grep -w $RIG)
+if [ -n "$CHECK" ]; then
+echo "Name already used. Would you like"
+read -p "delete it? y/n " ANS
+	if [ $ANS = 'y' ] || [ $ANS = 'Y' ]; then
+	REMOVE
+	fi
+fi
+
+cat <<EOF > /run/user/$UID/flrig-$RIG.desktop
+[Desktop Entry]
+Name=Flrig-$RIG
+GenericName=Amateur Radio Rig Control
+Comment=Amateur Radio Communications
+Exec=flrig --config-dir $HOME/flrig_conf/$RIG
+Icon=flrig
+Terminal=false
+Type=Application
+Categories=Network;HamRadio;
+EOF
+
+sudo cp /run/user/$UID/flrig-$RIG.desktop /usr/local/share/applications/
+mkdir -p $HOME/flrig_conf/$RIG
+clear;echo;echo
+cat <<EOF
+###########################################
+The new FLRIG instance has been created for
+$RIG radio. Open it from the main Pi menu 
+and then configure for your radio.
+###########################################
+
+EOF
+read -n 1 -s -r -p "Press any key to continue"
+MAINMENU
+}
+
+REMOVE(){
+#this function is called by the list function after 
+#the user has chosen the rig to remove
+sudo rm /usr/local/share/applications/flrig-$RIG.desktop
+rm -r $HOME/flrig_conf/$RIG
+echo "$RIG Rig removed"
+read -n 1 -s -r -p "Press any key to continue"
+}
+
+LIST(){
+#list the rigs already installed with FLRIG helper
+#and allow user to remove them
+clear;echo;echo
+RIGCHK=$(ls $HOME/flrig_conf)
+if [ -z "$RIGCHK" ]; then
+echo "##########################"
+echo "#     No rigs found      #"
+echo "##########################"
+sleep 2
+else
+echo "##########################"
+echo "#  List of current rigs  #"
+echo "##########################"
+ls $HOME/flrig_conf
+echo "##########################"
+echo
+echo "Leave blank for no changes"
+read -p "Which rig would you like to delete? " RIG
+	if [ -z "$RIG" ]; then
+	MAINMENU
+	fi
+VERIFY_RIG=$(ls /$HOME/flrig_conf | grep $RIG)
+	if [ -z "$VERIFY_RIG" ]; then
+	echo "No rig by that name found"
+	read -n 1 -s -r -p "Press any key to continue"
+	else
+	REMOVE
+	fi
+fi
+}
+
+ORIGINAL(){
+#remove original FLRIG menu entry
+clear;echo;echo
+if [ ! -f /usr/local/share/applications/flrig.desktop ]; then
+echo "The original shortcut has already been removed"
+sleep 2
+MAINMENU
+fi
+cat <<EOF
+This does not remove the FLRIG application. It only
+removes the original Pi menu entry for starting FLRIG
+
+EOF
+read -p "Remove original FLRIG menu entry? y/n " ANS
+if [ "$ANS" = 'y' ] || [ "$ANS" = 'Y' ]; then
+
+	if [ -f /usr/local/share/applications/flrig.desktop ]; then
+	sudo rm /usr/local/share/applications/flrig.desktop
+	echo;echo "Original FLRIG menu entry removed"
+	read -n 1 -s -r -p "Press any key to continue"
+	else
+	echo;echo "original FLRIG entry not found"
+	read -n 1 -s -r -p "Press any key to continue"
+	fi
+fi
+}
+
+HELP(){
+#create the help file
+cat <<EOF > /run/user/$UID/flrighelp.help
+
+FLRIG Helper version $VERSION :: $BY
+
+Navigating help file:
+Use the arrow keys on the keyboard to navigate this file  
+as needed. To exit the help file, press "q"
+
+Purpose:
+The purpose of this script is to help you create multiple instances of FLRIG
+so that you can use the same Pi with multiple radios. This simplifies your
+setup so you can use the same Pi with multiple kits. It also makes it easier
+to keep your Pi up to date since there is only one Pi to update that works
+with each of your field kits.
+
+Add Rig:
+This option will install a new instance of FLRIG into the main Pi Menu. Afterwards,
+you can open FLRIG using the new menu option and configure it for your radio. It
+is recommended that you use the model number of your radio for the name.
+
+Remove Rig:
+This option allows you to remove a previously added rig. This will remove both
+the menu entry for the radio and the config files for said radio. 
+
+Remove Original:
+This option removes the original Pi menu entry for FLRIG. It DOES NOT remove the
+FLRIG application. The purpose of this is solely to clean up the Pi menu.
+
+Help:
+Displays this help file.
+EOF
+#display the help file
+less /run/user/$UID/flrighelp.help
+#remove the help file when done
+rm /run/user/$UID/flrighelp.help
+}
+
+INSTALL(){
+cat <<EOF > /run/user/$UID/flhelper.desktop
+[Desktop Entry]
+Name=FLRIG HELPER
+GenericName=FlHelper Script
+Comment=Create multiple instances of FLRIG
+Exec=lxterminal --geometry=85x24+450+150 -t FLRIG-helper -e /home/pi/bin/flrig-helper
+Icon=flrig
+Terminal=false
+Type=Application
+Categories=Settings;DesktopSettings;GTK;X-LXDE-Settings;
+EOF
+
+sudo cp /run/user/$UID/flhelper.desktop /usr/local/share/applications/
+}
+
+if [ $1 = 'install' ]; then
+INSTALL
+echo "FLRIG-helper installed. A shortcut has been created in the Pi menu under Preferences"
+exit
+fi
+
+#call the main menu
+MAINMENU
+
+
