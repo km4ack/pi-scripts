@@ -233,7 +233,7 @@ cat <<EOF > /run/user/$UID/flhelper.desktop
 Name=FLRIG HELPER
 GenericName=FlHelper Script
 Comment=Create multiple instances of FLRIG
-Exec=lxterminal --geometry=85x24+450+150 -t FLRIG-helper -e /home/pi/bin/flrig-helper
+Exec=lxterminal --geometry=85x24+450+150 -t FLRIG-helper -e /home/pi/bin/flhelper
 Icon=flrig
 Terminal=false
 Type=Application
