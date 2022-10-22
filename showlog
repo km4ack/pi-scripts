@@ -4,6 +4,7 @@
 #20191128 km4ack
 #20200610 last edit
 
+VERSION=1
 LOGO=/usr/share/icons/PiXflat/48x48/apps/fm-details.png
 
 	if ! hash yad 2>/dev/null; then
