@@ -1,0 +1,74 @@
+#!/bin/bash
+
+NOTES(){
+I had a very specific need where I wanted to be able to start either
+the packet modem or VARA FM when the Pi booted. It needed to both give
+the user a choice of modems and work automatically without having to 
+VNC into the Pi first. This script will do just that.
+
+If the sound card is connected before boot then the packet modem will
+be started. If the sound card is not connected at boot, then direwolf will
+fail to start. The script detects the failure and then waits on the 
+sound card to be connected and auto start VARA FM once the sound card is
+connected.
+
+It will also post a message to the pat outbox indicating which modem
+was started. This outgoing message is addressed to "test" so if it is
+accidentally sent, it will simply return to the user.
+
+INSTALL:
+Download this script and make it executable. The link to it in cron.
+EXAMPLE CRON
+@reboot /path/to/script/auto-start-modem
+
+DEPENDS:
+Direwolf
+ax25
+vara fm
+pat winlink
+pat menu
+
+Hope it helps you!
+73, de KM4ACK
+07OCT2022
+}
+
+export DISPLAY=:0
+
+#this function is used to post a message in the outbox to 
+#give the operator feedback as to which modem has started.
+POSTMAIL(){
+echo "$MODEM is running" | pat compose test -s "$MODEM started"
+}
+
+#this works with a sound card connected but fails if sound card not found
+$HOME/patmenu2/start-pat2m &
+
+sleep 10
+
+#This checks to see if direwolf started
+if [ -z `pidof direwolf` ]; then
+
+	#if direwolf not running, enter loop and wait on sound card to be connected.
+	while [ -z `arecord -l | grep card` ]; do
+	echo "wait on Sound card"
+	sleep 2
+	done
+	$HOME/patmenu2/start-vara-fm	#start vara fm modem
+	MODEM=VARA-FM			#set modem variable
+	
+	#verify vara modem started.
+	VARA=$(ps aux | grep wine | grep VARA | head -1 | awk '{print $2}')
+	if [ -z $VARA ]; then
+	MODEM=FAILED			#set modem variable
+	POSTMAIL			#post message to outbox
+	else
+	MODEM=VARA-FM			#set modem variable
+	POSTMAIL			#post message to outbox
+	fi
+else
+MODEM=Direwolf	#set modem variable
+POSTMAIL	#post message to outbox
+exit
+fi
+
