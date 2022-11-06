@@ -1,0 +1,332 @@
+#!/bin/bash
+
+#Checklist generator script
+#14OCT2022 KM4ACK
+
+MYPATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+LISTS=$HOME/.config/checklists
+VERSION=1.0
+LOGO=/usr/share/icons/HighContrast/48x48/stock/gtk-apply.png
+
+export MYPATH
+export LISTS
+export VERSION
+export LOGO
+
+#initial setup
+mkdir -p $LISTS
+if [ ! -f ${LISTS}/category ]; then
+	touch ${LISTS}/category
+	echo "RADIOS" > ${LISTS}/category
+	echo "BATTERIES" >> ${LISTS}/category
+	echo "HF_ANTENNAS" >> ${LISTS}/category
+fi
+
+###################################
+#	INSTALL
+###################################
+if [ "$1" = 'install' ]; then
+	echo "checking dependencies"
+		if ! hash yad 2>/dev/null; then
+			echo "YAD not installed but required. Installing now..."
+			sudo apt update
+			sudo apt install -y yad
+		fi
+
+		if ! hash pandoc 2>/dev/null; then
+			echo "pandoc not installed but required. Installing now..."
+			sudo apt update
+			sudo apt install -y pandoc
+		fi
+	echo "moving file to correct location"
+	chmod +x ${MYPATH}/checklist-generator
+	sudo mv ${MYPATH}/checklist-generator /usr/local/bin/
+	echo "installing menu shortcut"
+	cat <<EOF > /run/user/$UID/checklist.desktop
+[Desktop Entry]
+Name=Checklist Generator
+GenericName=Checklist Generator
+Comment=Checklist Generator
+Exec=/usr/local/bin/checklist-generator
+Terminal=false
+Icon=/usr/share/icons/HighContrast/48x48/stock/gtk-apply.png
+Type=Application
+Categories=Utility
+EOF
+	sudo mv /run/user/$UID/checklist.desktop /usr/local/share/applications/
+	echo "Install complete. Use the menu item to start the checklist generator"
+	exit
+fi
+
+###################################
+#	MAIN MENU
+###################################
+MAIN(){
+	yad --form --width=420 --text-align=center --center --title="Checklist Generator" --text-align=center \
+	--image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" --no-buttons \
+	--text="<b>Checklist Generator</b> by KM4ACK v$VERSION" \
+	--field="Create a Checklist":fbtn 'bash -c "kill -USR1 $YAD_PID; CREATE"' \
+	--field="Edit Categories":fbtn 'bash -c "kill -USR1 $YAD_PID; CATEGORY"' \
+	--field="Edit List Items":fbtn 'bash -c "kill -USR1 $YAD_PID; EDIT_LIST"' \
+	--field="Export Config Files":fbtn 'bash -c "kill -USR1 $YAD_PID; EXPORT_CONFIG"' \
+	--field="Import Config Files":fbtn 'bash -c "kill -USR1 $YAD_PID; IMPORT_CONFIG"' \
+	--field="Help":fbtn 'bash -c "kill -USR1 $YAD_PID; HELP"' \
+	--field="Quit":fbtn 'bash -c "kill -USR1 $YAD_PID"'
+}
+export -f MAIN
+
+###################################
+#	Create List
+###################################
+CREATE(){
+	#need to get name for list from user
+		LIST_NAME=$(yad --form --width=420 --text-align=center --center --title="Check" \
+			--image ${LOGO} --window-icon=${LOGO} --image-on-top --separator="|" --item-separator="|" \
+			--text="<b>Checklist Generator</b>by KM4ACK v$VERSION" \
+			--field="Name this List*" \
+			--field="<b>* Required</b>":LBL \
+			--button="Cancel":1 \
+			--button="Continue":2)
+		BUT=$?
+		if [ ${BUT} = 252 ]; then
+		exit
+		elif [ ${BUT} = 1 ]; then
+		MAIN &
+		exit
+		fi
+	LIST_NAME=$(echo $LIST_NAME | awk -F "|" '{print $1}' | sed 's/ /-/g')
+	LIST_NAME=$HOME/Desktop/${LIST_NAME}-Checklist.txt
+
+
+	#add blank line to category file. This is needed so the last line with text 
+	#is read correctly.
+	echo "" >> ${LISTS}/category
+
+	#read category file and create lists
+	while read -r line; do
+
+		#exit loop if line is blank
+		if [ -z $line ]; then
+			break
+		fi
+
+		LIST=$LISTS/${line}.txt
+		TEMP_LIST=/run/user/$UID/${line}.txt
+		touch $LIST $TEMP_LIST
+
+		#remove spaces from names and replace with "-"
+		sed -i 's/ /-/g' $LIST
+
+		INFO=$(PARSER='OFS="\n" {print $1}'
+		tail -50 $LIST | awk "$PARSER" | \
+		yad --title="$line" --width=300 --height=500 \
+		    --image $LOGO --window-icon=$LOGO --image-on-top --multiple \
+		    --center --list --text="<b>$line</b>\rChoose items to add to list\rctrl+click for multiple items" \
+		    --column Item \
+		    --button="Cancel":1 \
+		    --button="Continue":2 > $TEMP_LIST)
+		BUT=$?
+		if [ $BUT = 252 ]; then
+			exit
+		elif [ $BUT = 1 ]; then
+			MAIN &
+			exit
+		fi
+		sed -i 's/|//g' $TEMP_LIST
+
+	done <${LISTS}/category
+
+touch $LIST_NAME
+OUTPUT
+
+}
+export -f CREATE
+
+###################################
+#	Edit Lists
+###################################
+EDIT_LIST(){
+
+	while read -r line; do
+		touch ${LISTS}/${line}.txt
+	done <${LISTS}/category
+
+	sed -i 's/ /-/' ${LISTS}/category
+
+	MY_LIST=$(cat ${LISTS}/category)
+	echo $MY_LIST > /run/user/$UID/templist
+	sed -i 's/ /,/g' /run/user/$UID/templist
+	MY_LISTS=$(cat /run/user/$UID/templist)
+
+	LIST_TO_EDIT=$(yad --center --wrap --width=350 --title="List Editor" --text-align=center \
+	--text="<b>Checklist Generator</b>by KM4ACK\rList Editor" \
+	--image $LOGO --window-icon=$LOGO --image-on-top \
+	--button="Edit List:2" \
+	--button="Return to Main Menu:1" \
+	--form --separator="," --item-separator="," \
+	--field="Choose list to edit":CB $MY_LISTS \
+	)
+	BUT=$?
+
+	if [ $BUT = 252 ]; then
+		exit
+		elif [ $BUT = 1 ]; then
+		MAIN &
+		exit
+	fi
+
+	LIST_TO_EDIT=$(echo $LIST_TO_EDIT | sed 's/,//')
+	LIST_TO_EDIT=${LISTS}/${LIST_TO_EDIT}.txt
+
+	xdg-open $LIST_TO_EDIT
+	EDIT_LIST
+}
+export -f EDIT_LIST
+
+###################################
+#	Edit Category
+###################################
+CATEGORY(){
+	xdg-open ${LISTS}/category
+	MAIN &
+	exit
+}
+export -f CATEGORY
+
+###################################
+#	OUTPUT
+###################################
+OUTPUT(){
+	TEMP_DIR=/run/user/$UID
+
+	PRETTY_NAME=$(echo $LIST_NAME | awk -F "/" '{print $NF}' | sed 's/.txt//;s/-Checklist//')
+	echo -e "#${PRETTY_NAME}#\r" > $LIST_NAME
+	echo "Created `date`" >> $LIST_NAME
+
+	while read -r line; do
+		if [ -f ${TEMP_DIR}/${line}.txt ]; then
+			CHECK=$(cat ${TEMP_DIR}/${line}.txt)
+			if [ -z "$CHECK" ]; then
+				rm ${TEMP_DIR}/${line}.txt
+			else
+				sed -i 's/^/- [ ]/' ${TEMP_DIR}/${line}.txt
+				echo "" >> $LIST_NAME
+				echo "###${line}###" >> $LIST_NAME
+				#echo "" >> $LIST_NAME
+				cat ${TEMP_DIR}/${line}.txt >> $LIST_NAME
+			fi
+		fi
+	done <${LISTS}/category
+
+	#create html file from markdown text
+	#both files output to desktop
+	/usr/bin/pandoc -s -f markdown_mmd  $LIST_NAME -o ${LIST_NAME}.html
+
+	#give user feedback
+	yad --height=200 --width=300 --text-align=center --center --title="Checklist Generator" \
+	--image ${LOGO} --window-icon=${LOGO} --image-on-top \
+	--text="<b>List Created</b>\r\rThe list $LIST_NAME has been created and can be found \
+	on your desktop" \
+	--button=gtk-ok
+	MAIN &
+	exit
+}
+export -f OUTPUT
+
+###################################
+#	HELP
+###################################
+HELP(){
+	cat <<EOF > /run/user/$UID/checklist-help.txt
+If this is the first time you have run the app, click
+on "Edit Categories" Add each category (ie. Radios,
+Batteries, Antennas) to a new line. Once you have 
+your categories entered, save and close the text file. 
+
+Next click on "Edit List Items" You  will now see 
+the categories you just created in the drop down list. 
+Edit each category adding items as needed toeach list. 
+Repeat the process for each category.
+
+After both of these steps are complete, click "Create
+a Checklist" to generate your first checklist. Completed
+checklists will appear on your desktop as a text file.
+
+Import/Export
+Once you have your categories and lists made, you may 
+want to move this to another computer. This is possible
+by exporting your current config files and then
+importing the config file on the new machine. The export
+feature is also a handy way to backup your config files
+for the Checklist Generator.
+EOF
+
+	INTRO=$(yad --width=600 --height=250 --text-align=center --center --title="Checklist Generator" --show-uri \
+		--image ${LOGO} --window-icon=${LOGO} --image-on-top --separator="|" --item-separator="|" \
+		--text="<b>Checklist Generator</b> by KM4ACK v$VERSION" \
+		--text-info \
+		--button="Continue":2 </run/user/$UID/checklist-help.txt \
+		>/dev/null 2>&1)
+	BUT=$?
+	rm /run/user/$UID/checklist-help.txt
+		if [ $BUT = 252 ]; then
+			exit
+		fi
+
+	MAIN &
+	exit
+}
+export -f HELP
+
+###################################
+#	Export Config
+###################################
+EXPORT_CONFIG(){
+	mkdir -p $HOME/Desktop/checklists/
+	cp -r $HOME/.config/checklists/* $HOME/Desktop/checklists/
+	touch $HOME/Desktop/checklists/.km4ack 
+
+	yad --height=200 --width=300 --text-align=center --center --title="Checklist Generator" \
+	--image ${LOGO} --window-icon=${LOGO} --image-on-top \
+	--text="<b>Config Files Exports</b>\r\rThe files have been exported and can be found \
+	on your desktop in the <b>checklists</b> directory" \
+	--button=gtk-ok
+
+	MAIN &
+	exit
+}
+export -f EXPORT_CONFIG
+
+###################################
+#	Import Config
+###################################
+IMPORT_CONFIG(){
+	DIR=$(yad --file --directory --width=600 --height=400 --center --title="Checklist Generator" --text-align=center \
+	--image $LOGO --window-icon=$LOGO --image-on-top \
+	--text="\r<b>Choose the directory where your config files are located</b>\r")
+
+	CHECK=$(ls -a $DIR | grep .km4ack)
+
+	if [ -z "$CHECK" ]; then
+		yad --height=200 --width=300 --text-align=center --center --title="Checklist Generator" \
+		--image ${LOGO} --window-icon=${LOGO} --image-on-top \
+		--text="<b>ERROR</b>\r\rThis directory does not appear to have been exported using \
+		the Checklist Generator application. Can't continue." \
+		--button=gtk-ok
+		MAIN &
+		exit
+	fi
+
+	cp $DIR/* $HOME/.config/checklists/
+	yad --height=200 --width=300 --text-align=center --center --title="Checklist Generator" \
+	--image ${LOGO} --window-icon=${LOGO} --image-on-top \
+	--text="<b>Config Files Imported</b>" \
+	--button=gtk-ok
+	MAIN &
+	exit
+}
+export -f IMPORT_CONFIG
+
+MAIN
+exit
+
