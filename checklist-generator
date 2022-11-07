@@ -75,6 +75,27 @@ MAIN(){
 }
 export -f MAIN
 
+EDITOR(){
+	#list name passed from other function(s)
+	file=$(cat ${LIST_NAME})
+
+	LIST=$(yad --form --width=420 --height=500 --text-align=center --center --title="Check List Generator" \
+	--image ${LOGO} --window-icon=${LOGO} --image-on-top --separator="|" --item-separator="|" \
+	--text="<b>Checklist Generator</b>by KM4ACK v$VERSION" --text="Put each item on a seperate line" \
+	--field="Items":TXT "$file")
+	
+	if [ $? = 1 ]; then
+		MAIN &
+		exit
+	fi
+
+	LIST=$(echo $LIST | awk -F "|" '{print $1}')
+	echo -e $LIST > ${LIST_NAME}
+	MAIN &
+	exit
+}
+export -f EDITOR
+
 ###################################
 #	Create List
 ###################################
@@ -177,8 +198,9 @@ EDIT_LIST(){
 
 	LIST_TO_EDIT=$(echo $LIST_TO_EDIT | sed 's/,//')
 	LIST_TO_EDIT=${LISTS}/${LIST_TO_EDIT}.txt
+	LIST_NAME=${LIST_TO_EDIT}
 
-	xdg-open $LIST_TO_EDIT
+	EDITOR
 	EDIT_LIST
 }
 export -f EDIT_LIST
@@ -187,7 +209,8 @@ export -f EDIT_LIST
 #	Edit Category
 ###################################
 CATEGORY(){
-	xdg-open ${LISTS}/category
+	LIST_NAME=${LISTS}/category
+	EDITOR
 	MAIN &
 	exit
 }
