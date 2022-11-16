@@ -1,0 +1,132 @@
+#!/bin/bash
+
+#application to track battery usage
+#15NOV2022 KM4ACK
+
+############INSTALL################
+#to install, download this script
+#and start with:
+#bash battery-tracker install
+###################################
+
+VERSION=1
+MYPATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+DATA_FILE=$HOME/.config/battery-data.txt
+BATT_DATA=$HOME/.config/battery-size.txt
+LOGO=/usr/share/icons/HighContrast/scalable/devices/battery.svg
+
+INSTALL(){
+	echo "installing battery tracker"
+	chmod +x ${MYPATH}/battery-tracker
+	sudo mv ${MYPATH}/battery-tracker /usr/local/bin/
+	echo "checking dependencies"
+	if ! hash bc >/dev/null; then
+		sudo apt install -y bc
+	fi
+
+	if ! hash yad >/dev/null; then
+		sudo apt install -y yad
+	fi
+	echo "creating menu entry"
+	cat >battery-tracker.desktop <<EOF
+[Desktop Entry]
+Name=Battery Tracker
+GenericName=Battery Tracker
+Comment=Battery Track Utility
+Exec=/usr/local/bin/battery-tracker
+Icon=/usr/share/icons/HighContrast/scalable/devices/battery.svg
+Terminal=false
+Type=Application
+Categories=Utility
+EOF
+
+	sudo mv battery-tracker.desktop /usr/local/share/applications/
+	echo "install complete. use the main menu to start battery tracker"
+	exit
+}
+
+if [ "$1" = 'install' ]; then
+	INSTALL
+fi
+
+if [ ! -f $DATA_FILE ]; then
+	touch $DATA_FILE
+	echo 0 >> $DATA_FILE
+fi
+
+if [ ! -f $BATT_DATA ]; then
+	touch $BATT_DATA
+	echo 0| > $BATT_DATA
+fi
+
+TOTAL_USE(){
+	TOTAL=0
+	while read -r line; do
+		TOTAL=$(echo $line + $TOTAL | bc -l)
+	done <$DATA_FILE
+}
+TOTAL_USE
+
+BATTERY(){
+	SIZE=$(cat $BATT_DATA | awk -F "|" '{print $1}')
+	if [ -z "$SIZE" ]; then
+		SIZE="Not Set"
+	fi
+
+	BATTERY_SIZE=$(yad --form --height=150 --width=300 --fixed --text-align=center --center --title="Battery Tracker" \
+	--image ${LOGO} --window-icon=${LOGO} --image-on-top \
+	--text="<b>Current Battery Size\r${SIZE} AH</b>" \
+	--field="AH of Battery" \
+	--button="Set Battery Size":2 \
+	--button="Cancel":1)
+	BUT=$?
+
+	if [ $BUT = 1 ]; then
+		MAIN
+	elif [ $BUT = 252 ]; then
+		exit
+	elif [ $BUT = 2 ] || [ $BUT = 0 ]; then
+		echo $BATTERY_SIZE > $BATT_DATA
+		MAIN
+	fi 
+}
+
+MAIN(){
+	SIZE=$(cat $BATT_DATA | awk -F "|" '{print $1}')
+	if [ -z "$SIZE" ]; then
+		SIZE=0
+	else
+		REMAIN=$(echo $SIZE - $TOTAL | bc -l)
+	fi
+	CURRENT_USE=$(yad --form --height=150 --width=300 --fixed --text-align=center --center --title="Battery Tracker" \
+	--image ${LOGO} --window-icon=${LOGO} --image-on-top \
+	--text="<b>Battery Size  ${SIZE} AH\rTotal Usage   ${TOTAL} AH\rRemaining    ${REMAIN} AH</b>" \
+	--field="AH Used in this session" \
+	--button="Set Battery Size":4 \
+	--button="Clear Counter":3 \
+	--button="Add to Total":2)
+	BUT=$?
+	SESSION_USE=$(echo $CURRENT_USE | awk -F "|" '{print $1}')
+
+	if [ $BUT = 1 ] || [ $BUT = 252 ]; then
+		exit
+	elif [ $BUT = 3 ]; then
+		rm $DATA_FILE
+		touch $DATA_FILE
+		echo 0 >> $DATA_FILE
+		TOTAL_USE
+		MAIN
+	elif [ $BUT = 4 ]; then
+		BATTERY
+	fi
+
+	if [ -n $SESSION_USE ]; then
+		echo $SESSION_USE >> $DATA_FILE
+		TOTAL_USE
+		MAIN
+	else
+		MAIN
+	fi
+	TOTAL_USE
+}
+MAIN
