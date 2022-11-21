@@ -1,0 +1,172 @@
+#!/bin/bash
+
+VERSION=1
+
+#############################################################################################
+# VARA running on wine will not release and reopen the ports
+# after a connection is made over a network.
+# This script will monitor vara for ports not reopening correctly.
+# Once a port failure is detected, it will close and re open VARA which
+# is a crude way to reset the ports but the only one that works for now.
+# VARA FM is the default modem but you can use VARA HF by calling
+# it when the script is started. To start FM mode, simply run
+#	./vara_monitor
+# to start HF mode, modify the command and start with
+#	./vara_monitor HF
+#
+# This script is specifically designed to run on the Raspberry Pi
+# and will not work on other versions of Linux.
+#
+# 19NOV2022 KM4ACK
+##############################################################################################
+
+# user variables##############################################################################
+WAIT_TIME=240		#seconds to wait so connections can finish before restarting VARA.
+			          #Note: this time is doubled automatically for HF connections.
+		          	#Increasing this time allows for longer connections but also
+		          	#increases the time between restarts. Change the WAIT_TIME to
+	          		#suit your individual needs. Default is 240 seconds for FM and
+	          		#480 seconds (8 minutes) for HF
+
+RIG_CONTROL=YES		#YES/NO. If set to YES this script 
+			            #assumes FLRIG is configured for rig control.
+# End user variables #########################################################################
+
+#start of main script
+#set modem start and give user feedback if HF
+if [ $1 = "HF" ]; then
+	MODEM_START="HF"
+	clear;echo;echo
+	echo "Doubling connection timeout \"WAIT_TIME\""
+	WAIT_TIME=$(echo $(($WAIT_TIME*2)))
+	echo "WAIT_TIME is now $WAIT_TIME seconds"
+	sleep 5
+else
+	MODEM_START="FM"
+fi
+
+clear;echo;echo
+if [ "$RIG_CONTROL" = 'YES' ]; then
+	#verify FLRIG is running
+	FLRIG_RUN=$(pidof flrig)
+	while [ -z "$FLRIG_RUN" ]; do
+		echo "Please start FLRIG"
+		sleep 1
+		FLRIG_RUN=$(pidof flrig)
+		clear;echo;echo
+	done
+
+
+	echo "FLRIG seems to be running...standby"
+	#give FLRIG a few of seconds to start
+	for i in {03..01}
+		do
+		tput cup 2 36
+		echo -n "$i"
+		sleep 1
+	done
+fi
+
+MAIN(){
+	if [ "$RIG_CONTROL" = 'YES' ]; then
+		#start rigctld if not running
+		if [ -z `pidof rigctld` ]; then
+			/usr/local/bin/rigctld -m 4 &
+		fi
+	fi
+
+	clear;echo;echo
+	#verify vara has been started
+	VARA_RUN=$(ps aux | grep wine | grep -i vara | head -1 | awk '{print $2}')
+	while [ -z "$VARA_RUN" ]; do
+		echo "Configured for VARA $MODEM_START"
+		echo "**Modem not running**"
+		echo "Please start the modem"
+		sleep 1
+		VARA_RUN=$(ps aux | grep wine | grep -i vara | head -1 | awk '{print $2}')
+		clear;echo;echo
+	done	
+	echo "VARA seems to be running...standby"
+	#wait for vara modem to start
+	for i in {15..01}
+		do
+		tput cup 2 35
+		echo -n "$i"
+		sleep 1
+	done
+	#setup time variables
+	seconds=1
+	minutes=0
+	hours=0
+	#monitor ports which will close after a network connection
+	#both ports 8300 & 8301 needed but we only need to check for one of them.
+	VARA_CK=$(sudo netstat -tunlp | grep 8300)
+	while [ -n "$VARA_CK" ]; do
+		clear;echo;echo
+		echo "##########################"
+		echo "# KM4ACK VARA Monitor v${VERSION} #"
+		echo "##########################"
+		echo "Monitoring VARA ports"
+		echo "press ctrl+c to stop"
+		echo "Elasped time - ${hours}:${minutes}:${seconds}"
+		VARA_CK=$(sudo netstat -tunlp | grep 8300)
+		((seconds++))
+		if [ $seconds = 60 ]; then
+			((minutes++))
+			seconds=0
+		fi
+
+		if [ $minutes = 60 ]; then
+			((hours++))
+			minutes=0
+			seconds=0
+		fi
+		sleep 1
+	done
+	clear;echo;echo
+	#give connections time to complete before restarting vara
+	#this timeout is defined above as WAIT_TIME
+	echo "Port closure detected!"
+	echo "Starting reset procedure"
+	for i in $(eval echo "{$WAIT_TIME..01}")
+		do
+		tput cup 3 25
+		echo -n "$i"
+		sleep 1
+	done
+	#kill current vara session
+	clear;echo;echo
+	echo "Done waiting, hope the connection was finished"
+	echo "If not, increate the WAIT_TIME which is currently $WAIT_TIME seconds"
+	echo "killing VARA $MODEM_START"
+	#get PID's of VARA & kill
+	FIRST=$(ps aux | grep wine | grep -i vara | head -1 | awk '{print $2}')
+	SECOND=$(ps aux | grep wine | grep -i vara | tail -1 | awk '{print $2}')
+	kill -9 $FIRST > /dev/null 2>&1 &
+	kill -9 $SECOND > /dev/null 2>&1 &
+	sleep 3
+
+	clear;echo;echo
+	#wait 61 seconds before restarting. This gives the ports time to clear
+	#so they are ready for the next run
+	echo "restarting VARA $MODEM_START in"
+	for i in {61..01}
+		do
+		tput cup 2 22
+		echo -n "$i"
+		sleep 1
+	done
+
+	#restart the correct modem
+	if [ "$MODEM_START" = 'HF' ]; then
+		/usr/local/bin/wine $HOME/.wine/drive_c/VARA/VARA.exe > /dev/null 2>&1 &
+	elif [ "$MODEM_START" = 'FM' ]; then
+		/usr/local/bin/wine $HOME/.wine/drive_c/VARA\ FM/VARAFM.exe > /dev/null 2>&1 &
+	fi
+
+}
+
+#run this script in a loop
+while true; do
+	MAIN
+done
