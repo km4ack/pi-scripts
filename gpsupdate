@@ -1,29 +1,43 @@
 #!/bin/bash
 
-VERSION=5
+VERSION=6
 
 #script to change GPS in gpsd file and restart gpsd service
 #reference - https://www.linux-magazine.com/Issues/2018/210/Tutorial-gpsd
 #11JAN2021 KM4ACK 
 
-##################################################################
-#                                                                #
-#	#   #	#       #     #      #        #####  #   #       #
-#	#  #	# #   # #    ##     # #      #       #  #        #
-#	# #	#   #   #   # #    #   #    #        # #         #
-#	##	#       #  #####  #######  #         ##          #
-#	# #	#       #     #   #     #   #        # #         #
-#	#  #	#       #     #   #     #    #       #  #        #
-#	#   #	#       #     #   #     #     #####  #   #       #
-#                                                                #
-##################################################################
+LOGO=$HOME/73Linux/data/ico/gps.png
 
-LOGO=/usr/share/icons/Adwaita/48x48/actions/mark-location.png
+	PASS=$(yad --entry --width=420 --text-align=center --center --title="GPS Update Tool" \
+		--image ${LOGO} --window-icon=${LOGO} --image-on-top --separator="|" --item-separator="|" --hide-text \
+        --text="Required\rBad password will cause program to exit" \
+		--entry-label="Sudo Password*" \
+		--button="Continue":2)
+	BUT=$?
+	if [ ${BUT} = 252 ]; then
+		exit
+	fi
+PASS=$(echo $PASS | awk -F "|" '{print $1}')
+
+#reset sudo timer to prevent false positive
+sudo -k
+echo "Checking SUDO credentials....standby"
+echo $PASS | sudo -S touch /run/user/$UID/sutest
+
+if [ $? = 1 ]; then
+	yad --form --width=250 --text-align=center --center --title="Wrong Password" --text-align=center \
+		--image ${LOGO} --window-icon=${LOGO} --image-on-top --separator="|" --item-separator="|" \
+		--text="<b>Password Incorrect!</b>\rCan't continue" \
+		--button=gtk-close
+    exit
+else 
+    echo "Credentials check out....continuing"
+fi
 
 #Verify YAD is installed
 if ! hash yad 2>/dev/null; then
-echo "Installing YAD....please wait"
-sudo apt install -y yad
+    echo "Installing YAD....please wait"
+    echo $PASS | sudo -S apt install -y yad
 fi
 
 #####################################
@@ -96,8 +110,8 @@ INTRO=$(yad --width=650 --height=400 --text-align=center --center --title="GPS U
 --button="Continue":1)
 BUT=$?
 if [ $BUT = 252 ] || [ $BUT = 0 ]; then
-rm /run/user/$UID/gpsintro.txt
-exit
+    rm /run/user/$UID/gpsintro.txt
+    exit
 fi
 rm /run/user/$UID/gpsintro.txt
 }
@@ -108,6 +122,8 @@ rm /run/user/$UID/gpsintro.txt
 CHANGELOG(){
 clear;echo;echo
 cat <<EOF>/run/user/$UID/changelog.txt
+Version 6 18OCT2022
+    	add sudo password to support x86
 Version 5 29OCT2021
 	add defaults for phone GPS
 Version 4 06SEPT0221
@@ -137,23 +153,23 @@ INTRO=$(yad --width=650 --height=350 --text-align=center --center --title="GPS U
 --button="Exit":2 > /dev/null 2>&1)
 BUT=$?
 if [ $BUT = 252 ] || [ $BUT = 2 ]; then
-rm /run/user/$UID/changelog.txt
-exit
+    rm /run/user/$UID/changelog.txt
+    exit
 fi
 rm /run/user/$UID/changelog.txt
 exit
 }
 
 if [ $1 = 'change' ]>/dev/null 2>&1; then
-CHANGELOG
+    CHANGELOG
 fi
 
 #Verify gpsd is installed
 if ! hash gpsd 2>/dev/null; then
-yad --center --height="300" --width="400" --form --separator="|" --item-separator="|" --title="GPS" \
---image $LOGO --window-icon=$LOGO --image-on-top \
---text="\r\r\r<b><big>GPS software not installed.\rPlease install and try again.\rUse Build a Pi to install GPS.</big></b>" \
---button="Exit":1
+    yad --center --height="300" --width="400" --form --separator="|" --item-separator="|" --title="GPS" \
+    --image $LOGO --window-icon=$LOGO --image-on-top \
+    --text="\r\r\r<b><big>GPS software not installed.\rPlease install and try again.</big></b>" \
+    --button="Exit":1
 fi
 
 #####################################
@@ -176,7 +192,7 @@ BUT=$?
 MYIP=$(echo $PHONEPORT | awk -F "|" '{print $1}')
 MYPORT=$(echo $PHONEPORT | awk -F "|" '{print $2}')
 	if [ $BUT = 252 ] || [ $BUT = 1 ]; then
-	exit
+	    exit
 	fi
 
 ##############################################################
@@ -186,9 +202,9 @@ cp /etc/default/gpsd /run/user/$UID
 
 sed -i "s|DEVICES=.*|DEVICES=\"udp://$MYIP:$MYPORT\"|" /run/user/$UID/gpsd
 
-sudo cp /run/user/$UID/gpsd /etc/default/
+echo $PASS | sudo -S cp /run/user/$UID/gpsd /etc/default/
 
-sudo systemctl restart gpsd
+echo $PASS | sudo -S systemctl restart gpsd
 
 yad --center --height="300" --width="300" --form --separator="|" --item-separator="|" --title="GPS" \
 --image $LOGO --window-icon=$LOGO --image-on-top \
@@ -214,7 +230,7 @@ SERIALPORT=$(yad --form --width=420 --text-align=center --center --title="GPS Up
 BUT=$?
 MYPORT=$(echo $SERIALPORT | awk -F "|" '{print $1}')
 	if [ $BUT = 252 ] || [ $BUT = 1 ]; then
-	exit
+	    exit
 	fi
 ##############################################################
 #This section mods the gpsd file and restart the gpsd service#
@@ -223,9 +239,9 @@ cp /etc/default/gpsd /run/user/$UID
 
 sed -i "s|DEVICES=.*|DEVICES=\"/dev/serial$MYPORT\"|" /run/user/$UID/gpsd
 
-sudo cp /run/user/$UID/gpsd /etc/default/
+echo $PASS | sudo -S cp /run/user/$UID/gpsd /etc/default/
 
-sudo systemctl restart gpsd
+echo $PASS | sudo -S systemctl restart gpsd
 
 yad --center --height="300" --width="300" --form --separator="|" --item-separator="|" --title="GPS" \
 --image $LOGO --window-icon=$LOGO --image-on-top \
@@ -251,7 +267,7 @@ BLUEPORT=$(yad --form --width=420 --text-align=center --center --title="GPS Upda
 BUT=$?
 MYPORT=$(echo $BLUEPORT | awk -F "|" '{print $1}')
 	if [ $BUT = 252 ] || [ $BUT = 1 ]; then
-	exit
+	    exit
 	fi
 
 ##############################################################
@@ -261,9 +277,9 @@ cp /etc/default/gpsd /run/user/$UID
 
 sed -i "s|DEVICES=.*|DEVICES=\"/dev/rfcomm$MYPORT\"|" /run/user/$UID/gpsd
 
-sudo cp /run/user/$UID/gpsd /etc/default/
+echo $PASS | sudo -S cp /run/user/$UID/gpsd /etc/default/
 
-sudo systemctl restart gpsd
+echo $PASS | sudo -S systemctl restart gpsd
 
 yad --center --height="300" --width="300" --form --separator="|" --item-separator="|" --title="GPS" \
 --image $LOGO --window-icon=$LOGO --image-on-top \
@@ -288,7 +304,7 @@ yad --center --height="200" --width="200" --form --separator="|" --item-separato
 
 BUT=$?
 if [ $BUT = 1 ] || [ $BUT = 252 ]; then
-exit
+    exit
 fi
 
 USB=$(ls /dev/serial/by-id)
@@ -300,8 +316,7 @@ GPS=$(yad --center --height="200" --width="300" --form --separator="|" --item-se
 --field="GPS":CB "$USB")
 BUT=$?
 if [ $BUT = 252 ] || [ $BUT = 1 ]; then
-echo exiting
-exit
+    exit
 fi
 
 GPS=$(echo $GPS | awk -F "|" '{print $1}')
@@ -313,9 +328,9 @@ cp /etc/default/gpsd /run/user/$UID
 
 sed -i "s|DEVICES=.*|DEVICES=\"/dev/serial/by-id/$GPS\"|" /run/user/$UID/gpsd
 
-sudo cp /run/user/$UID/gpsd /etc/default/
+echo $PASS | sudo -S cp /run/user/$UID/gpsd /etc/default/
 
-sudo systemctl restart gpsd
+echo $PASS | sudo -S systemctl restart gpsd
 
 yad --center --height="300" --width="300" --form --separator="|" --item-separator="|" --title="GPS" \
 --image $LOGO --window-icon=$LOGO --image-on-top \
@@ -336,29 +351,29 @@ GPSTYPE=$(yad --form --width=420 --text-align=center --center --title="GPS Updat
 --button="Exit":1)
 BUT=$?
 if [ $BUT = 1 ] || [ $BUT = 252 ]; then
-exit
+    exit
 fi
 if [ $BUT = 3 ]; then
-echo "restarting gpsd service"
-sudo systemctl restart gpsd
-yad --center --height="300" --width="300" --form --separator="|" --item-separator="|" --title="GPS" \
---image $LOGO --window-icon=$LOGO --image-on-top \
---text="\r\r\r\r\r<b><big>gpsd service restarted</big></b>" \
---button="Ok":1
-MAIN
+    echo "restarting gpsd service"
+    echo $PASS | sudo -S systemctl restart gpsd
+    yad --center --height="300" --width="300" --form --separator="|" --item-separator="|" --title="GPS" \
+    --image $LOGO --window-icon=$LOGO --image-on-top \
+    --text="\r\r\r\r\r<b><big>gpsd service restarted</big></b>" \
+    --button="Ok":1
+    MAIN
 fi
 MYGPS=$(echo $GPSTYPE | awk -F "|" '{print $1}')
 if [ $MYGPS = 'Serial' ]; then
-SERIALGPS
+    SERIALGPS
 elif [ $MYGPS = 'Bluetooth' ]; then
-BLUEGPS
+    BLUEGPS
 elif [ $MYGPS = 'Phone' ]; then
-PHONEGPS
+    PHONEGPS
 elif [ $MYGPS = 'USB' ]; then
-USBGPS
+    USBGPS
 elif [ $MYGPS = 'Help' ]; then
-HELP
-MAIN
+    HELP
+    MAIN
 fi
 }
 MAIN
