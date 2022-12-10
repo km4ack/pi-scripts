@@ -4,13 +4,13 @@
 #also provide a file outside of the BAP script that can easily be updated without forcing
 #a new release of BAP.
 
-#updated 23NOV2022
+#updated 10DEC2022
 
 
-arm32=https://downloads.gridtracker.org/v1.22.1123/GridTracker-1.22.1123-linux-arm32.tar.gz
+arm32=https://downloads.gridtracker.org/v1.22.1204/GridTracker-1.22.1204-linux-arm32.tar.gz
 
-arm64=https://downloads.gridtracker.org/v1.22.1123/GridTracker-1.22.1123-linux-arm64.tar.gz
+arm64=https://downloads.gridtracker.org/v1.22.1204/GridTracker-1.22.1204-linux-arm64.tar.gz
 
 nwjs=https://downloads.gridtracker.org/nwjs-downloader/v0.68.1-5/nwjs-downloader_0.68.1-1_all.deb
 
-deb=https://downloads.gridtracker.org/v1.22.1123/gridtracker_1.22.1123_all.deb
+deb=https://downloads.gridtracker.org/v1.22.1204/gridtracker_1.22.1204_all.deb
