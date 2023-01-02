@@ -48,8 +48,9 @@ MENU(){
 		echo "3) Build Individaul State 	(Offline Use)"
 		echo "4) Build All Downloaded States	(Offline Use)"
 		echo "5) List Downloaded States"
-		echo "6) Exit"
 	fi
+		echo "6) Help"
+		echo "7) Exit"
 	echo
 	read -p "Choose an Option " ans
 	case $ans in
@@ -99,6 +100,10 @@ MENU(){
 			MENU
 		;;
 		6)
+			HELP
+			MENU
+		;;
+		7)
 			echo "73, QRZ"
 			sleep 1
 			echo "Nothing heard. Station QRT"
@@ -114,6 +119,20 @@ MENU(){
 #####################
 # Sub Routines
 #####################
+
+HELP(){
+HEADER
+cat <<EOF
+To get started, you will want to use option 1 or 2 to download
+an individual state (recommended first) or all fifty states.
+
+After the download is complete, use option 3 or 4 to build the web
+pages for the individual state or all states from the data files
+that were downloaded using option 1 or 2.
+ 
+EOF
+read -n 1 -s -r -p "Press any key to continue"
+}
 
 #################################
 # List current files downloaded
