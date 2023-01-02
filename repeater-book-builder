@@ -1,0 +1,343 @@
+#!/bin/bash
+
+#script to download repeater database from repeaterbook.com
+#and build offline database viewed in a browser
+#01JAN2023 KM4ACK
+
+VER=1
+APP_DIR="$(cd "$(dirname "$0")" && pwd)"
+TEMP_DIR=/run/user/$UID/
+CSV=${TEMP_DIR}/temp.csv
+OUT_DIR=${APP_DIR}/repeater-list/
+DATA_DIR=${OUT_DIR}.json-data/
+
+#verify depends are installed
+if ! hash pandoc 2>/dev/null; then
+	echo "pandoc not installed but required"
+	read -p "Install now? y/n " ans
+		if [ "$ans" = 'y' ] || [ "$ans" = 'Y' ]; then
+			sudo apt update		
+			sudo apt install -y pandoc
+		else
+			echo "can't continue. 73"
+			exit
+		fi
+fi
+
+if ! hash jq 2>/dev/null; then
+	echo "jq not installed but required"
+	read -p "Install now? y/n " ans
+		if [ "$ans" = 'y' ] || [ "$ans" = 'Y' ]; then
+			sudo apt update		
+			sudo apt install -y jq
+		else
+			echo "can't continue. 73"
+			exit
+		fi
+fi
+
+################
+#  main menu
+################
+MENU(){
+	ck=$(ls $DATA_DIR)
+	HEADER
+	echo "1) Download New State 		(Internet Required)"
+	echo "2) Download ALL STATES		(Internet Required)"
+	if [ -n "$ck" ]; then
+		echo "3) Build Individaul State 	(Offline Use)"
+		echo "4) Build All Downloaded States	(Offline Use)"
+		echo "5) List Downloaded States"
+		echo "6) Exit"
+	fi
+	echo
+	read -p "Choose an Option " ans
+	case $ans in
+		1)
+			DOWNLOAD
+		;;
+		2)
+			HEADER
+			echo "RepeaterBook.com limits the rate at which we can download."
+			echo "Because of this, the download rate is throttled. It takes"
+			echo "approximately 15 minutes to download all of the states."
+			read -p "Continue? y/n " ans
+			if [ "$ans" = 'y' ] || [ "$ans" = 'Y' ]; then		
+				DOWNLOAD_ALL
+				MENU
+			else
+				MENU
+			fi
+			
+		;;
+		3)
+			HEADER
+			ls ${DATA_DIR} | sed 's/.json//'
+			read -p "Choose a State " ans
+			INPUT=${DATA_DIR}${ans}.json
+			state=$ans
+			BUILD_DIR
+			MENU
+		;;
+		4)
+			HEADER
+			echo
+			echo "This option will (re)build all pages"
+			echo "for states already downloaded"
+			echo "This process takes ~1.5 hours for"
+			echo "all 50 states"
+			read -p "Continue? y/n " ans
+			if [ "$ans" = 'y' ] || [ "$ans" = 'Y' ]; then		
+				BUILD_ALL
+				MENU
+			else
+				MENU
+			fi
+		;;
+		5)
+			CURRENT
+			MENU
+		;;
+		6)
+			echo "73, QRZ"
+			sleep 1
+			echo "Nothing heard. Station QRT"
+			exit
+		;;
+		*)
+			echo "invalid option. try again"
+			sleep 3
+			MENU
+	esac							
+}
+
+#####################
+# Sub Routines
+#####################
+
+#################################
+# List current files downloaded
+#################################
+CURRENT(){
+	HEADER
+	echo "Current States on Disk:"
+	echo
+	ls $DATA_DIR | sed 's/.json//'
+	echo
+	read -n 1 -s -r -p "Press any key to continue"
+}
+
+##################################
+# (re)Build all downloaded files
+##################################
+BUILD_ALL(){
+	for file in ${DATA_DIR}*; do
+		INPUT="$file"
+		state=$(echo $file | awk -F "/" '{print $NF}' | sed 's/.json//')
+		echo "###########################"
+		echo "Building $state"
+		echo "###########################"
+		BUILD_DIR
+	done
+}
+
+
+HEADER(){
+	clear;echo;echo
+	echo "#########################"
+	echo "# Repeater List Builder #"
+	echo "#   Version $VER KM4ACK    #"
+	echo "#########################"
+}
+
+###############################################
+# function downloads individual state list
+###############################################
+DOWNLOAD(){
+	mkdir -p $DATA_DIR $OUT_DIR
+	HEADER
+	echo "Use full state name"
+	read -p "Which state to download? " state
+	list_name="${state,,}"
+	state="${list_name^}"
+	list_name=$(echo $state | sed 's/ /-/g')
+	curl -s "https://www.repeaterbook.com/api/export.php?state=${state}" > ${DATA_DIR}${list_name}.json
+	echo "download done. next build the state for offline use"
+	sleep 2
+	MENU
+}
+
+##############################
+# function builds html pages
+##############################
+BUILD_PAGE(){
+	line=$(echo $line | sed 's/ /-/')
+	echo "### Call: $CALL" >> ${OUT_DIR}${state}/data/${line}.json
+	echo "" >> ${OUT_DIR}${state}/data/${line}.json
+	echo "### Location: $CITY" >> ${OUT_DIR}${state}/data/${line}.json
+	echo "" >> ${OUT_DIR}${state}/data/${line}.json
+	echo "### Frequcncy: $FREQ" >> ${OUT_DIR}${state}/data/${line}.json
+	echo "" >> ${OUT_DIR}${state}/data/${line}.json
+	echo "### PL: $TONE" >> ${OUT_DIR}${state}/data/${line}.json
+	echo "" >> ${OUT_DIR}${state}/data/${line}.json
+	echo "### TSQ: $TSQ" >> ${OUT_DIR}${state}/data/${line}.json
+	echo "" >> ${OUT_DIR}${state}/data/${line}.json
+	echo "### Latitude: $LAT" >> ${OUT_DIR}${state}/data/${line}.json
+	echo "" >> ${OUT_DIR}${state}/data/${line}.json
+	echo "### Longititude: $LONG" >> ${OUT_DIR}${state}/data/${line}.json
+	echo "" >> ${OUT_DIR}${state}/data/${line}.json
+	echo "<a href=\"file://${OUT_DIR}${state}/${state}.html\">${state} county index</a>" >> ${OUT_DIR}${state}/data/${line}.json
+	echo "" >> ${OUT_DIR}${state}/data/${line}.json
+	echo "-----" >> ${OUT_DIR}${state}/data/${line}.json
+	echo "" >> ${OUT_DIR}${state}/data/${line}.json
+	cat ${OUT_DIR}${state}/data/${line}.json | pandoc -s -o ${OUT_DIR}${state}/data/${line}.html >/dev/null 2>&1	#convert file to html
+}
+
+########################################
+# process json file before page build
+########################################
+BUILD_DIR(){
+	#get unique counties from json file
+	jq -r '.results[].County' $INPUT | sort -u > ${TEMP_DIR}counties
+
+	#clean up and make dir before building new
+	if [ -d ${OUT_DIR}${state} ]; then rm -rf ${OUT_DIR}${state}; fi
+	mkdir -p ${OUT_DIR}${state} ${OUT_DIR}${state}/data
+
+	#read counties file and extract repeaters for each county
+	while read -r line; do
+
+		echo "Building $line county page"	
+		jq -r '.results[] | select(.County == "'"$line"'") | {Call: .Callsign, Frequency: .Frequency, PL: .PL, Lat: .Lat, Long: .Long, Near: ."Nearest City", TSQ: .TSQ} | join (",")' $INPUT > $CSV
+
+		while read -r csv_line; do
+			CALL=$(echo $csv_line | awk -F "," '{print $1}')
+			if [ -z "$CALL" ]; then CALL=N0CALL; fi
+			FREQ=$(echo $csv_line | awk -F "," '{print $2}')
+			TONE=$(echo $csv_line | awk -F "," '{print $3}')
+			if [ -z "$TONE" ]; then TONE=NONE; fi
+			LAT=$(echo $csv_line | awk -F "," '{print $4}')
+			LONG=$(echo $csv_line | awk -F "," '{print $5}')
+			CITY=$(echo $csv_line | awk -F "," '{print $6}')
+			TSQ=$(echo $csv_line | awk -F "," '{print $7}')
+			line=$(echo $line | sed 's/ /-/g')
+			echo "## $line County $state" >> ${OUT_DIR}${state}/data/"${line}".json
+			echo "" >> ${OUT_DIR}${state}/data/"${line}".json
+			BUILD_PAGE
+		done < $CSV	
+
+	done < ${TEMP_DIR}counties
+
+	rm ${OUT_DIR}${state}/data/*.json 	#clean up temp files
+
+	#######################
+	#build state index file
+	#######################
+	echo "#####################"
+	echo "building state index"
+	echo "<center><h1>${state} county list</h1></center>" >> ${OUT_DIR}${state}/${state}.html
+	echo "<p style=\"color:blue;font-size:30px;\">" >> ${OUT_DIR}${state}/${state}.html
+
+	for files in ${OUT_DIR}${state}/data/*; do
+		link_name=$(echo $files | awk -F '/' '{print $NF}' | sed 's/.html//')
+		echo "<a href=\"file://${files}\">$link_name</a>" >> ${OUT_DIR}${state}/${state}.html
+
+	done
+
+	#echo "</br>" >> ${OUT_DIR}${state}/${state}.html
+	echo "</br><h1><center><a href=\"file://${OUT_DIR}master-index.html\">Master Index</a></center></h1>" >> ${OUT_DIR}${state}/${state}.html
+	echo "</p>" >> ${OUT_DIR}${state}/${state}.html
+
+	####################
+	#build master index
+	####################
+	if [ -f ${OUT_DIR}master-index.html ]; then rm ${OUT_DIR}master-index.html; fi
+	echo "Building master index"
+	echo "#####################"
+	echo "<h1><center>Master Index for Offline Repeater List</center></h1>" >> ${OUT_DIR}master-index.html
+	echo "<p style=\"color:blue;font-size:30px;\">" >> ${OUT_DIR}master-index.html
+
+	for file in ${OUT_DIR}*; do
+		if [ -d $file ]; then	
+			index=$(ls $file | grep html)
+			state=$(echo $index | sed 's/.html//')
+			echo "<a href=\"file://${OUT_DIR}${state}/${index}\">${index}</a></br>" >> ${OUT_DIR}master-index.html
+		fi
+	done
+	
+	#create symlink on users desktop
+	echo "</p>" >> ${OUT_DIR}master-index.html
+	ln -sf ${OUT_DIR}master-index.html $HOME/Desktop/repeater-index.html
+	echo "Link to index placed on your desktop"
+	sleep 2
+}
+############################################################
+# Download all state json files from repeaterbook.com
+############################################################
+DOWNLOAD_ALL(){
+#write out file to be used in loop below
+
+cat <<EOF > /run/user/$UID/states.txt
+Alabama
+Alaska
+Arizona
+Arkansas
+California
+Colorado
+Connecticut
+Delaware
+Florida
+Georgia
+Hawaii
+Idaho
+Illinois
+Indiana
+Iowa
+Kansas
+Kentucky
+Louisiana
+Maine
+Maryland
+Massachusetts
+Michigan
+Minnesota
+Mississippi
+Missouri
+Montana
+Nebraska
+Nevada
+New Hampshire
+New Jersey
+New Mexico
+New York
+North Carolina
+North Dakota
+Ohio
+Oklahoma
+Oregon
+Pennsylvania
+Rhode Island
+South Carolina
+South Dakota
+Tennessee
+Texas
+Utah
+Vermont
+Virginia
+Washington
+West Virginia
+Wisconsin
+Wyoming
+
+EOF
+	#process file written above
+	while read -r line; do
+		if [ -z "$line" ]; then continue; fi					#skip blank lines
+		LINK="https://www.repeaterbook.com/api/export.php?state=${line}"	#set link
+		echo "downloading $line"
+		list_name=$(echo $line | sed 's/ /-/')					#replace spaces with "-"
+		curl -s "${LINK}" > ${DATA_DIR}${list_name}.json			#download file
+		sleep 15								#throttle DL so we don't get API rejection
+	done < /run/user/$UID/states.txt
+}
+MENU
