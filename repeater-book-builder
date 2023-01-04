@@ -294,6 +294,7 @@ BUILD_DIR(){
 # Download all state json files from repeaterbook.com
 ############################################################
 DOWNLOAD_ALL(){
+mkdir -p $DATA_DIR $OUT_DIR
 #write out file to be used in loop below
 
 cat <<EOF > /run/user/$UID/states.txt
