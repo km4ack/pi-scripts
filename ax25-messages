@@ -434,7 +434,7 @@ cat <<EOF > /run/user/$UID/ax25message.desktop
 Name=AX25 Messages
 GenericName=AX25 Messages
 Comment=Messaging app that uses ax25
-Exec=/home/pi/bin/ax25-messages
+Exec=$HOME/bin/ax25-messages
 Icon=/usr/share/icons/Adwaita/scalable/actions/send-to-symbolic.svg
 Terminal=false
 Type=Application
