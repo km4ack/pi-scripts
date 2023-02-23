@@ -243,9 +243,9 @@ sudo -A /usr/sbin/kissattach $LINK wl2k
 sudo -A kissparms -c 1 -p wl2k
 elif [ "$TNC" = 'mobilinkd' ]; then
 	if [ "$TNCV" = 2 ]; then
-	sudo rfcomm bind /dev/rfcomm8 $MAC
+	sudo -A rfcomm bind /dev/rfcomm8 $MAC
 	elif [ "$TNCV" = 3 ]; then
-	sudo rfcomm bind /dev/rfcomm8 $MAC 6
+	sudo -A rfcomm bind /dev/rfcomm8 $MAC 6
 	fi
 sleep 1
 sudo -A /usr/sbin/kissattach /dev/rfcomm8 wl2k
