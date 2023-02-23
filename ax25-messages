@@ -5,7 +5,7 @@
 #Create menu item by running "./ax25-messages menu"
 #02FEB2022 KM4ACK
 
-VERSION=2
+VERSION=3
 LOG=/run/user/$UID/axlisten.log
 LOGBKUP=/run/user/$UID/axlisten.log.bkup
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -17,8 +17,47 @@ source $DIR/.ax25-messages.config > /dev/null 2>&1
 #change log
 #version 2 29MARCH2022 KM4ACK
 #added mobilind TNC support
+#version 3 22FEB2023 KM4ACK
+#add sudo password input to support x86 
 #####################################
 
+########################
+#get sudo pw
+########################
+if [ ! -f /run/user/$UID/.ax25 ]; then
+PW=$(yad --title="sudo password" --width=400 --height=100 \
+--image $LOGO --window-icon=$LOGO --image-on-top --text-align=center \
+--center --form --text="Please enter your sudo password" \
+--field="Password":H \
+--button=gtk-ok)
+PASS=$(echo $PW | awk -F "|" '{print $1}')
+echo $PASS | base64 > /run/user/$UID/.ax25
+echo '#!/bin/bash' > /run/user/$UID/.axpw
+echo 'PASS=$(base64 -d /run/user/$UID/.ax25)' >> /run/user/$UID/.axpw
+echo 'echo $PASS' >> /run/user/$UID/.axpw
+chmod +x /run/user/$UID/.axpw
+export SUDO_ASKPASS=/run/user/$UID/.axpw
+#reset sudo timer to prevent false positive
+sudo -k
+echo "Checking SUDO credentials....standby"
+sudo -A touch /run/user/$UID/sutest 2>&1 </dev/null
+
+    if [ $? = 1 ]; then
+    echo "Wrong sudo password entered. Can't continue! Exiting"
+    yad --title="Wrong Password" --width=400 --height=100 \
+    --image $LOGO --window-icon=$LOGO --image-on-top --text-align=center \
+    --center --form --text="Wrong Password. Can't continue'" \
+    --button="Exit"
+    rm /run/user/$UID/.ax25 /run/user/$UID/.axpw
+    exit
+    else 
+    echo "Credentials check out....continuing"
+    fi
+    
+else
+export SUDO_ASKPASS=/run/user/$UID/.axpw
+fi
+############################
 
 ###########################
 #Depends Check
@@ -69,8 +108,8 @@ case ${BUT} in
 	2)
 	echo "Stop Listening...."
 	rm $LOG $LOGBKUP /run/user/$UID/message.sh > /dev/null 2>&1
-	sudo killall axlisten direwolf kissattach rigctld > /dev/null 2>&1
-	sudo rfcomm release /dev/rfcomm8 > /dev/null 2>&1
+	sudo -A killall axlisten direwolf kissattach rigctld > /dev/null 2>&1
+	sudo -A rfcomm release /dev/rfcomm8 > /dev/null 2>&1
 	kill $KILLTHIS > /dev/null 2>&1
 	MAINMENU
 	;;
@@ -98,8 +137,8 @@ cleanup()
 {
 	echo "Shutting down...."
 	rm $LOG $LOGBKUP /run/user/$UID/message.sh > /dev/null 2>&1
-	sudo killall axlisten direwolf kissattach rigctld > /dev/null 2>&1
-	sudo rfcomm release /dev/rfcomm8 > /dev/null 2>&1
+	sudo -A killall axlisten direwolf kissattach rigctld > /dev/null 2>&1
+	sudo -A rfcomm release /dev/rfcomm8 > /dev/null 2>&1
 	kill $KILLTHIS > /dev/null 2>&1 #this kills the loop looking for messages
 }
 
@@ -200,8 +239,8 @@ if [ "$TNC" = 'direwolf' ]; then
 /usr/local/bin/direwolf -p &
 sleep 1
 LINK=$(ls -l /tmp/kisstnc | awk '{print $NF}')
-sudo /usr/sbin/kissattach $LINK wl2k
-sudo kissparms -c 1 -p wl2k
+sudo -A /usr/sbin/kissattach $LINK wl2k
+sudo -A kissparms -c 1 -p wl2k
 elif [ "$TNC" = 'mobilinkd' ]; then
 	if [ "$TNCV" = 2 ]; then
 	sudo rfcomm bind /dev/rfcomm8 $MAC
@@ -209,11 +248,11 @@ elif [ "$TNC" = 'mobilinkd' ]; then
 	sudo rfcomm bind /dev/rfcomm8 $MAC 6
 	fi
 sleep 1
-sudo /usr/sbin/kissattach /dev/rfcomm8 wl2k
-sudo kissparms -c 1 -p wl2k
+sudo -A /usr/sbin/kissattach /dev/rfcomm8 wl2k
+sudo -A kissparms -c 1 -p wl2k
 fi
 
-sudo axlisten -a | tee $LOG &
+sudo -A axlisten -a | tee $LOG &
 
 yad --form --width=200 --text-align=center --center --title="ax25 messages" --text-align=center \
 --image ${LOGO} --window-icon=${LOGO} --image-on-top \
@@ -230,7 +269,7 @@ source $DIR/.ax25-messages.config > /dev/null 2>&1
 mv $LOG $LOGBKUP
 touch $LOG
 #kill axlisten so we can move the log file.
-sudo killall axlisten
+sudo -A killall axlisten
 FROM=$(tail -2 $LOGBKUP | grep -i $CALL | awk '{print $3}')
 MSG=$(tail -1 $LOGBKUP | sed 's/0000  //')
 REPLYTO=$(tail -2 $LOGBKUP | grep -i $CALL | awk '{print $3}')
@@ -253,7 +292,7 @@ yad --center --width=600 --wrap --window-icon= --title="New Message" \
 fi
 
 sleep .5
-sudo axlisten -a | tee $LOG &
+sudo -A axlisten -a | tee $LOG &
 MSGCHECK
 }
 
@@ -403,7 +442,7 @@ Categories=HamRadio
 EOF
 echo "menu item created"
 echo "start ax25-messages using the Pi menu."
-sudo mv /run/user/$UID/ax25message.desktop /usr/local/share/applications/ax25message.desktop
+sudo -A mv /run/user/$UID/ax25message.desktop /usr/local/share/applications/ax25message.desktop
 exit
 fi
 
