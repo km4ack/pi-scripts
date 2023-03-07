@@ -7,10 +7,10 @@
 #updated 11JAN2023
 
 
-arm32=https://www.dropbox.com/s/jb6nx250cwb84fs/GridTracker-1.23.0110-linux-arm32.tar.gz
+arm32=https://www.dropbox.com/s/nue1dculgfay7s1/GridTracker-1.23.0206-linux-arm32.tar.gz
 
-arm64=https://www.dropbox.com/s/2h2ky3k5t43qpys/GridTracker-1.23.0110-linux-arm64.tar.gz
+arm64=https://www.dropbox.com/s/c8ltibm4hfos1rz/GridTracker-1.23.0206-linux-arm64.tar.gz
 
 nwjs=https://www.dropbox.com/s/6zq46mrg2t2nftp/nwjs-downloader_0.68.1-1_all.deb
 
-deb=https://www.dropbox.com/s/t8xsnx40nn7i4jd/gridtracker_1.23.0110_all.deb
+deb=https://www.dropbox.com/s/9mgao434473zgcr/gridtracker_1.23.0206_all.deb
