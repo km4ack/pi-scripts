@@ -4,7 +4,7 @@
 #also provide a file outside of the BAP script that can easily be updated without forcing
 #a new release of BAP.
 
-#updated 11JAN2023
+#updated 07MARCH2023
 
 
 arm32=https://www.dropbox.com/s/nue1dculgfay7s1/GridTracker-1.23.0206-linux-arm32.tar.gz
