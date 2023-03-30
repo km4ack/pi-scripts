@@ -55,7 +55,7 @@ yad --width=300 --height=75 --title="Sending" --timeout=2 --timeout-indicator=to
 FILE=/run/user/$UID/call.txt
 curl -s -k https://hamcall.net/call?callsign=$CALL1 | grep "</table>" -A 4 -m3 | tail -4 > $FILE
 
-NAME=$(cat $FILE | head -1 | sed 's/<B>//' | sed 's/<br>//' | awk 'sub(", " $NF,x)')
+NAME=$(cat $FILE | head -1 | sed 's/<B>//' | sed 's/<br>//' | awk 'sub(", " $NF, "")')
 CALL=$(cat $FILE | head -1 | sed 's/<B>//' | sed 's/<br>//' | awk -F ", " '{print $NF}')
 CITY=$(cat $FILE | head -3 | tail -1 | sed 's/<br>//')
 COUN=$(cat $FILE | head -4 | tail -1 | sed 's/<br>//')
