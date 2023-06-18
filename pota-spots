@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+
+VERSION=1
+
+######################################################################################
+# This script is based on the original work of Jerry, WF5W.                          #
+# His original script can be seen at https://github.com/wf5w/yspots/blob/main/yspots #
+# modified for Conky display by KM4ACK 18JUNE2023                                    #
+#                                                                                    #
+# This script will get the latest POTA spots and display them on the                 #
+# desktop using Conky.                                                               #
+######################################################################################
+
+###########
+# REMOVAL #
+###########
+
+if [ "$1" = 'remove' ]; then
+	echo "you may be prompted to enter sudo password during uninstall process"
+	sleep 1
+	rm $HOME/.conkyrc-pota
+	sudo rm /usr/local/bin/pota-spots
+	sudo rm $HOME/.config/autostart/conky-pota.desktop
+	crontab -l > /run/user/$UID/cron.txt
+	sed -i /CONKY-POTA/d /run/user/$UID/cron.txt
+	sed -i /pota-spots/d /run/user/$UID/cron.txt
+	crontab /run/user/$UID/cron.txt
+	echo "uninstall complete"
+	exit 0
+fi
+
+###########
+# INSTALL #
+###########
+
+# need jq & conky for this command to run
+if [ ! $(which jq) ]; then
+  echo "you need jq: do sudo apt install jq"
+  exit 1
+fi
+
+if [ ! $(which conky) ]; then
+  echo "you need conky: do sudo apt install conky"
+  exit 1
+fi
+
+#make script exec and move script to /usr/local/bin
+if [ ! -f /usr/local/bin/pota-spots ]; then
+	chmod +x pota-spots
+	echo "moving file to /usr/local/bin/"
+	echo "enter sudo password if asked"
+	sudo mv pota-spots /usr/local/bin/pota-spots
+	RUN=1
+fi
+
+#download custom conky file if not found
+if [ ! -f $HOME/.conkyrc-pota ]; then
+	echo "POTA conky file not found. downloading"
+	cd $HOME
+	wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/.conkyrc-pota
+	RUN=1
+else
+	echo "POTA conky file found"
+fi
+
+#verify script will run with cron
+CK=$(crontab -l | grep "CONKY-POTA")
+if [ -z "${CK}" ]; then
+	echo "updating cron"
+	crontab -l > /run/user/$UID/cron.txt
+	echo "#get pota spots for CONKY-POTA" >> /run/user/$UID/cron.txt
+	echo "*/5 * * * * /usr/local/bin/pota-spots" >> /run/user/$UID/cron.txt
+	crontab /run/user/$UID/cron.txt
+	RUN=1
+fi
+
+#set to auto start at boot if needed
+if [ ! -f $HOME/.config/autostart/conky-pota.desktop ]; then
+	echo "creating auto start file"
+	echo "[Desktop Entry]" > $HOME/.config/autostart/conky-pota.desktop
+	echo "Name=Conky" >> $HOME/.config/autostart/conky-pota.desktop
+	echo "Comment=Conky" >> $HOME/.config/autostart/conky-pota.desktop
+	echo "GenericName=Conky Screen Background Monitor" >> $HOME/.config/autostart/conky-pota.desktop
+	echo "Exec=conky -c $HOME/.conkyrc-pota --pause=5" >> $HOME/.config/autostart/conky-pota.desktop
+	echo "Icon=/home/pi/73Linux/data/ico/conky-logo.png" >> $HOME/.config/autostart/conky-pota.desktop
+	echo "Type=Application" >> $HOME/.config/autostart/conky-pota.desktop
+	echo "Encoding=UTF-8" >> $HOME/.config/autostart/conky-pota.desktop
+	echo "Terminal=false" >> $HOME/.config/autostart/conky-pota.desktop
+	echo "Categories=HamRadio" >> $HOME/.config/autostart/conky-pota.desktop
+	echo "Keywords=Radio" >> $HOME/.config/autostart/conky-pota.desktop
+	RUN=1
+fi
+
+#test to see if this is first run
+if [ $RUN = 1 ]; then
+	echo "install complete. POTA spots will not appear"
+	echo "on desktop until reboot is initiated."
+	echo "73, de KM4ACK"
+	exit
+fi
+
+###############
+# MAIN SCRIPT #
+###############
+url='https://api.pota.app/spot/activator'
+outfile=/run/user/$UID/spots.json
+outfile1=/run/user/$UID/temp.out.txt
+
+curl -s $url > $outfile 
+n=$(cat $outfile | jq '. [] | {reference: .reference, activator: .activator, freq: .frequency}' | jq '. .reference' | wc -l)
+let n=$(($n - 1))
+
+rm -f $outfile1
+echo "sorting data thru jq"
+x=1
+for s in $(seq 0 $n); do
+  echo "processing record $x"
+  ref=$(cat $outfile | jq ". [$s] | .reference")
+  activator=$(cat $outfile | jq ". [$s] | .activator")
+  freq=$(cat $outfile | jq ". [${s}] | .frequency")
+  loc=$(cat $outfile | jq ". [${s}] | .locationDesc")
+  grid=$(cat $outfile | jq ". [${s}] | .grid6")
+  mode=$(cat $outfile | jq ". [${s}] | .mode")
+
+  if [ "${mode}" = '""' ]; then
+    mode='n/a'
+  fi
+
+  printf "%-10s %-12s %-12s %-8s %-8s %s 16\n" ${ref} ${activator} ${freq} ${mode} ${loc} ${grid} | tr -d '"' >> $outfile1
+  ((x++))
+done
+
+mv $outfile1 /run/user/$UID/spots.txt
+rm -f spots.json
+
+
