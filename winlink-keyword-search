@@ -1,0 +1,141 @@
+#!/bin/bash
+
+#script to scan nearby stations list for specific keywords
+#requires that you download nearby stations list with pat winlink before using this script.
+#29DEC2022 KM4ACK
+#20JUNE2023 edit
+
+eval `pat env`
+keyword="green" #default keyword(s) to search for in each line
+INBOX=$HOME/.local/share/pat/mailbox/$PAT_MYCALL/in/*
+OUTFILE=$HOME/Desktop/call_sign_list.txt
+
+HEADER(){
+clear;echo;echo
+}
+
+#allow user to change keyword(s) to search
+HEADER
+echo "Current keyword(s) to search for is \"$keyword\""
+echo "1) Continue"
+echo "2) Change Keyword"
+echo "3) Exit"
+read -p "Choose a number " ans
+case $ans in
+    1)
+        echo "using keyword $keyword"
+    ;;
+    2)
+        read -p "New keyword(s)" keyword
+    ;;
+    3)            
+        echo "73, QRZ"
+        sleep 1
+        echo "Nothing heard. This station is QRT"        
+        exit
+    ;;
+    *)
+        echo "invalid choice"
+        exit
+    ;;
+esac
+
+#allow user to choose the list to search
+MY_LIST(){
+if [ -z "$1" ]; then
+    echo "Keyword to search is \"$keyword\""
+    echo "Keyword can be changed at top of script";echo
+    echo "Which list to search"
+    echo "1) WL2K_Mobiles - List of 100"
+    echo "2) WL2K_Nearby - List of 30"
+    echo "3) Cancel and exit"
+    read -p "Choose a number? " ans
+        case $ans in
+            1)
+            list=WL2K_MOBILES
+            ;;
+            2)
+            list=WL2K_NEARBY
+            ;;
+            3)
+            echo "73, QRZ"
+            sleep 1
+            echo "Nothing heard. This station is QRT"
+            exit
+            ;;
+            *)
+            echo "invalid choice. try again"
+            sleep 3
+            HEADER
+            MY_LIST
+            ;;
+        esac
+else
+list=$1
+fi
+}
+HEADER
+MY_LIST
+
+#scan emails in inbox to find the list to work with
+for files in $INBOX; do
+    ck=$(grep $list $files)
+    if [ -n "$ck" ]; then
+        file=$files
+        break
+    fi
+
+done
+
+if [ -z $file ]; then
+echo "list not found. download a current nearby or mobile list"
+echo "and try again. 73"
+exit 1
+fi
+
+#scan the list for the keyword in the comments
+to=""
+echo "scanning $list for keyword \"$keyword\""
+while read -r line; do
+    ck=$(echo $line | grep -i "$keyword")
+    if [ -n "$ck" ]; then
+        new=$(echo $line | awk '{print $1}')
+        to="$to $new"
+    fi
+done < $file
+
+#display results on screen
+if [ -z "$to" ]; then
+    echo "nothing found for keywork \"$keyword\""
+    echo "exiting in 5 seconds"
+    sleep 5
+else
+    echo "These stations have \"$keyword\" in the comment section"; echo
+    echo $to
+    #give option to compose a message
+    read -p "Compose a message to these stations? y/n " ans
+    if [ "$ans" = 'y' ] || [ "$ans" = 'Y' ]; then
+        read -p "Subject of email? " SUBJECT
+        echo "The nano editor will open so you can compose the message."
+        echo "Once complete, press ctrl+s to save and ctrl+x to exit"
+        echo "and post the message to the Pat outbox"
+        read -n 1 -s -r -p "Press any key to continue"
+        nano /run/user/$UID/email.txt
+        cat /run/user/$UID/email.txt | pat compose $to -s "$SUBJECT"
+        rm /run/user/$UID/email.txt
+    fi
+
+    #give option to output calls to text file
+    read -p "Write call sign list to file? y/n " ans
+    if [ "$ans" = 'y' ] || [ "$ans" = 'Y' ]; then
+        echo "`date`" > $OUTFILE
+        echo "These calls found with \"$keyword\" during the search" >> $OUTFILE
+        echo "" >> $OUTFILE
+        echo $to >> $OUTFILE
+        echo "File can be found on your desktop"
+        echo $OUTFILE  
+    fi
+fi
+
+
+
