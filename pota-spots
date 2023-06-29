@@ -11,92 +11,108 @@ VERSION=1
 # desktop using Conky.                                                               #
 ######################################################################################
 
-###########
-# REMOVAL #
-###########
+uninstall(){
+    ###########
+    # REMOVAL #
+    ###########
+    if [ "$1" = 'uninstall' ]; then
+	    echo "you may be prompted to enter sudo password during uninstall process"
+	    sleep 1
+	    rm $HOME/.conkyrc-pota
+	    sudo rm /usr/local/bin/pota-spots
+	    sudo rm $HOME/.config/autostart/conky-pota.desktop
+	    crontab -l > /run/user/$UID/cron.txt
+	    sed -i /CONKY-POTA/d /run/user/$UID/cron.txt
+	    sed -i /pota-spots/d /run/user/$UID/cron.txt
+	    crontab /run/user/$UID/cron.txt
+	    echo "uninstall complete"
+	    exit 0
+    fi
+}
 
-if [ "$1" = 'remove' ]; then
-	echo "you may be prompted to enter sudo password during uninstall process"
-	sleep 1
-	rm $HOME/.conkyrc-pota
-	sudo rm /usr/local/bin/pota-spots
-	sudo rm $HOME/.config/autostart/conky-pota.desktop
-	crontab -l > /run/user/$UID/cron.txt
-	sed -i /CONKY-POTA/d /run/user/$UID/cron.txt
-	sed -i /pota-spots/d /run/user/$UID/cron.txt
-	crontab /run/user/$UID/cron.txt
-	echo "uninstall complete"
-	exit 0
-fi
+install(){
+    ###########
+    # INSTALL #
+    ###########
+    clear; echo; echo
+    echo "######################################"
+    echo "# Every 5-15 minutes is recommended. #"
+    echo "######################################"; echo
+    read -p "How often would you like to check for new spots? (in minutes) " min
+    echo $min
 
-###########
-# INSTALL #
-###########
+    # need jq & conky for this command to run
+    if [ ! $(which jq) ]; then
+      echo "you need jq: do sudo apt install jq"
+      exit 1
+    fi
 
-# need jq & conky for this command to run
-if [ ! $(which jq) ]; then
-  echo "you need jq: do sudo apt install jq"
-  exit 1
-fi
+    if [ ! $(which conky) ]; then
+      echo "you need conky: do sudo apt install conky"
+      exit 1
+    fi
 
-if [ ! $(which conky) ]; then
-  echo "you need conky: do sudo apt install conky"
-  exit 1
-fi
+    #make script exec and move script to /usr/local/bin
+    if [ ! -f /usr/local/bin/pota-spots ]; then
+	    chmod +x pota-spots
+	    echo "moving file to /usr/local/bin/"
+	    echo "enter sudo password if asked"
+	    sudo mv pota-spots /usr/local/bin/pota-spots
+	    RUN=1
+    fi
 
-#make script exec and move script to /usr/local/bin
-if [ ! -f /usr/local/bin/pota-spots ]; then
-	chmod +x pota-spots
-	echo "moving file to /usr/local/bin/"
-	echo "enter sudo password if asked"
-	sudo mv pota-spots /usr/local/bin/pota-spots
-	RUN=1
-fi
+    #download custom conky file if not found
+    if [ ! -f $HOME/.conkyrc-pota ]; then
+	    echo "POTA conky file not found. downloading"
+	    cd $HOME
+	    wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/.conkyrc-pota
+	    RUN=1
+    else
+	    echo "POTA conky file found"
+    fi
 
-#download custom conky file if not found
-if [ ! -f $HOME/.conkyrc-pota ]; then
-	echo "POTA conky file not found. downloading"
-	cd $HOME
-	wget https://raw.githubusercontent.com/km4ack/pi-scripts/master/.conkyrc-pota
-	RUN=1
-else
-	echo "POTA conky file found"
-fi
+    #verify script will run with cron
+    CK=$(crontab -l | grep "CONKY-POTA")
+    if [ -z "${CK}" ]; then
+	    echo "updating cron"
+	    crontab -l > /run/user/$UID/cron.txt
+	    echo "#get pota spots for CONKY-POTA" >> /run/user/$UID/cron.txt
+	    echo "*/${min} * * * * /usr/local/bin/pota-spots" >> /run/user/$UID/cron.txt
+	    crontab /run/user/$UID/cron.txt
+	    RUN=1
+    fi
 
-#verify script will run with cron
-CK=$(crontab -l | grep "CONKY-POTA")
-if [ -z "${CK}" ]; then
-	echo "updating cron"
-	crontab -l > /run/user/$UID/cron.txt
-	echo "#get pota spots for CONKY-POTA" >> /run/user/$UID/cron.txt
-	echo "*/5 * * * * /usr/local/bin/pota-spots" >> /run/user/$UID/cron.txt
-	crontab /run/user/$UID/cron.txt
-	RUN=1
-fi
-
-#set to auto start at boot if needed
-if [ ! -f $HOME/.config/autostart/conky-pota.desktop ]; then
-	echo "creating auto start file"
-	echo "[Desktop Entry]" > $HOME/.config/autostart/conky-pota.desktop
-	echo "Name=Conky" >> $HOME/.config/autostart/conky-pota.desktop
-	echo "Comment=Conky" >> $HOME/.config/autostart/conky-pota.desktop
-	echo "GenericName=Conky Screen Background Monitor" >> $HOME/.config/autostart/conky-pota.desktop
-	echo "Exec=conky -c $HOME/.conkyrc-pota --pause=5" >> $HOME/.config/autostart/conky-pota.desktop
-	echo "Icon=/home/pi/73Linux/data/ico/conky-logo.png" >> $HOME/.config/autostart/conky-pota.desktop
-	echo "Type=Application" >> $HOME/.config/autostart/conky-pota.desktop
-	echo "Encoding=UTF-8" >> $HOME/.config/autostart/conky-pota.desktop
-	echo "Terminal=false" >> $HOME/.config/autostart/conky-pota.desktop
-	echo "Categories=HamRadio" >> $HOME/.config/autostart/conky-pota.desktop
-	echo "Keywords=Radio" >> $HOME/.config/autostart/conky-pota.desktop
-	RUN=1
-fi
+    #set to auto start at boot if needed
+    if [ ! -f $HOME/.config/autostart/conky-pota.desktop ]; then
+	    echo "creating auto start file"
+	    echo "[Desktop Entry]" > $HOME/.config/autostart/conky-pota.desktop
+	    echo "Name=Conky" >> $HOME/.config/autostart/conky-pota.desktop
+	    echo "Comment=Conky" >> $HOME/.config/autostart/conky-pota.desktop
+	    echo "GenericName=Conky Screen Background Monitor" >> $HOME/.config/autostart/conky-pota.desktop
+	    echo "Exec=conky -c $HOME/.conkyrc-pota --pause=5" >> $HOME/.config/autostart/conky-pota.desktop
+	    echo "Icon=/home/pi/73Linux/data/ico/conky-logo.png" >> $HOME/.config/autostart/conky-pota.desktop
+	    echo "Type=Application" >> $HOME/.config/autostart/conky-pota.desktop
+	    echo "Encoding=UTF-8" >> $HOME/.config/autostart/conky-pota.desktop
+	    echo "Terminal=false" >> $HOME/.config/autostart/conky-pota.desktop
+	    echo "Categories=HamRadio" >> $HOME/.config/autostart/conky-pota.desktop
+	    echo "Keywords=Radio" >> $HOME/.config/autostart/conky-pota.desktop
+	    RUN=1
+    fi
+}
 
 #test to see if this is first run
-if [ $RUN = 1 ]; then
-	echo "install complete. POTA spots will not appear"
-	echo "on desktop until reboot is initiated."
-	echo "73, de KM4ACK"
-	exit
+if [ "$RUN" = 1 ]; then
+    echo "install complete. POTA spots will not appear"
+    echo "on desktop until reboot is initiated."
+    echo "73, de KM4ACK"
+    exit
+fi
+
+#check to see if install or uninstalling
+if [ "$1" = 'install' ]; then
+    install
+elif [ "$1" = 'uninstall' ]; then
+    uninstall
 fi
 
 ###############
@@ -132,5 +148,6 @@ done
 
 mv $outfile1 /run/user/$UID/spots.txt
 rm -f spots.json
+
 
 
