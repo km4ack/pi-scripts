@@ -15,7 +15,6 @@ uninstall(){
     ###########
     # REMOVAL #
     ###########
-    if [ "$1" = 'uninstall' ]; then
 	    echo "you may be prompted to enter sudo password during uninstall process"
 	    sleep 1
 	    rm $HOME/.conkyrc-pota
@@ -27,7 +26,6 @@ uninstall(){
 	    crontab /run/user/$UID/cron.txt
 	    echo "uninstall complete"
 	    exit 0
-    fi
 }
 
 install(){
