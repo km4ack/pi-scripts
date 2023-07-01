@@ -106,7 +106,7 @@ done < $file
 
 #display results on screen
 if [ -z "$to" ]; then
-    echo "nothing found for keywork \"$keyword\""
+    echo "nothing found for keyword \"$keyword\""
     echo "exiting in 5 seconds"
     sleep 5
 else
