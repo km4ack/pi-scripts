@@ -1,0 +1,160 @@
+#!/bin/bash
+
+#####################################################################################
+# script to spot yourself and view POTA spots
+# utilizing Winlink & potagw@outlook.com
+# This can be done manually as described in this video https://youtu.be/yAVzdw7WonA
+# 01JULY2023 KM4ACK
+#####################################################################################
+
+############################################################
+# 			               Installation			                   #
+############################################################
+# Download this script. Open the terminal,navigate to      #
+# where the script was downloaded, and run                 #
+# bash spot-pota install                                   #
+# If you wish to uninstall later, run:                     #
+# spot-pota uninstall                                      #
+############################################################
+
+#set some variables
+LOGO=$HOME/Pictures/pota.png
+eval `pat env`
+VERSION=1
+
+#get call sign if pat winlink is installed
+if [ $(which pat) ]; then
+	eval `pat env`
+fi
+
+#installation function
+INSTALL(){
+	#verify YAD is installed
+	if [ ! $(which yad) ]; then
+		echo "YAD Not found but required"
+		read -p "Install YAD now? y/n " ans
+		if [ "$ans" = 'y' ] || [ "$ans" = 'Y' ]; then
+			sudo apt update
+			sudo apt install yad -y
+		fi
+	fi
+
+	echo "installing POTA Spots for Winlink"
+	chmod +x spot-pota
+	echo "moving file to /usr/local/bin"
+	sudo cp spot-pota /usr/local/bin 
+
+	#download logo 
+	if [ ! -f $HOME/Pictures/pota.png ]; then
+		mkdir -p $HOME/Pictures
+		echo "Downloading POTA logo"
+		wget https://raw.githubusercontent.com/km4ack/73Linux/master/data/ico/pota.png -P $HOME/Pictures/
+	fi
+	#create shortcut
+	echo "creating shortcut for POTA Spot"
+	shortcut=/run/user/$UID/spot-pota.desktop
+	echo "[Desktop Entry]" > $shortcut
+	echo "Name=POTA Spots" >> $shortcut
+	echo "Comment=POTA Spots with Winlink" >> $shortcut
+	echo "GenericName=POTA Spots with Winlink" >> $shortcut
+	echo "Exec=/usr/local/bin/spot-pota" >> $shortcut
+	echo "Icon=$HOME/Pictures/pota.png" >> $shortcut
+	echo "Type=Application" >> $shortcut
+	echo "Encoding=UTF-8" >> $shortcut
+	echo "Terminal=false" >> $shortcut
+	echo "Categories=HamRadio" >> $shortcut
+	echo "Keywords=Radio" >> $shortcut
+
+	#move shortcut to correct location
+	sudo mv $shortcut /usr/local/share/applications/
+	#give user some feedback
+	echo "POTA Spot installation done. If you wish to uninstall, run:"
+	echo "spot-pota uninstall"
+	echo "73, de KM4ACK"
+	exit
+}
+
+#uninstall function
+UNINSTALL(){
+	echo "Uninstalling POTA Spots for Winlink"
+	sudo rm /usr/local/bin/spot-pota
+	sudo rm /usr/local/share/applications/spot-pota.desktop
+	rm $HOME/Pictures/pota.png
+	echo "Uninstall complete"
+	exit
+}
+
+#check to see if we are installing/uninstalling
+if [ "$1" = 'install' ]; then
+	INSTALL
+elif [ "$1" = 'uninstall' ]; then
+	UNINSTALL
+fi
+
+#main funtion
+MENU(){
+
+	#give user choice of spotting or viewing spots
+	CHOICE=$(yad --form --width=420 --text-align=center --center --title="POTA Spots" \
+	--image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
+	--text="POTA Spot for Winlink\r by KM4ACK Version $VERSION" \
+	--field="Select One":CB "Spot Yourself|View Current Spots" \
+	--button="Exit":1 \
+	--button="Continue":2)
+	BUT=$?
+	if [ ${BUT} = 1 ] || [ ${BUT} = 252 ]; then
+		exit
+	fi
+	ans=$(echo $CHOICE | awk -F "|" '{print $1}')
+
+
+	case $ans in
+
+		"Spot Yourself")
+			#grab data for spot
+			INFO=$(yad --form --width=420 --text-align=center --center --title="Activation Info" --text-align=center \
+			--image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
+			--text="POTA Spot for Winlink\r by KM4ACK Version $VERSION\r Enter your details" \
+			--field="Call Sign" "$PAT_MYCALL" \
+			--field="Park Number" "K-2144" \
+			--field="Frequency (Hz)" "7157" \
+			--field="Mode":CB "SSB|CW|FT8|FT4|DATA|PHONE" \
+			--field="Comment" "" \
+			--button="Cancel":1 \
+			--button="Spot":2)
+			BUT=$?
+
+			if [ ${BUT} = 1 ]; then
+				MENU
+			elif [ ${BUT} = 252 ]; then
+				exit
+			fi
+			
+			#parse data entered & store in variable
+			call=$(echo $INFO | awk -F "|" '{print $1}')
+			park=$(echo $INFO | awk -F "|" '{print $2}')
+			freq=$(echo $INFO | awk -F "|" '{print $3}')
+			mode=$(echo $INFO | awk -F "|" '{print $4}')
+			comment=$(echo $INFO | awk -F "|" '{print $5}')
+			echo "$call $park $freq $mode $comment" | pat compose potagw@outlook.com -s "$call $park $freq $mode $comment"
+
+			#give user feedback
+			yad --form --width=500 --text-align=center --center --title="Spot Posted" --text-align=center \
+			--image ${LOGO} --window-icon=${LOGO} --image-on-top --separator="|" --item-separator="|" \
+			--text="POTA Spot for Winlink\r by KM4ACK Version $VERSION\r <b>Spot Message Posted to Outbox</b>\rInitiate Winlink connection to send" \
+			--button=gtk-ok
+			MENU;;
+
+		
+		"View Current Spots")
+			#Post message to get active spots
+			echo "VIEWSPOTS" | pat compose potagw@outlook.com -s VIEWSPOTS
+			#Give user feedback
+			yad --form --width=500 --text-align=center --center --title="Request Posted" --text-align=center \
+			--image ${LOGO} --window-icon=${LOGO} --image-on-top --separator="|" --item-separator="|" \
+			--text="POTA Spot for Winlink\r by KM4ACK Version $VERSION\r <b>Request Posted to Outbox</b>\rInitiate Winlink connection to send" \
+			--button=gtk-ok
+			MENU;;
+	esac
+}
+MENU	#Call main menu
