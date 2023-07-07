@@ -135,7 +135,7 @@ n=$(cat "$outfile" | jq '.|length')
 printf "Found %s records\n" $n
 
 # eval "$(cat "$outfile" | jq -r 'map( ["printf", "%-10s %-12s %-12s %-8s %-8s %s 16\\n", .reference, .activator, .frequency, .locationDesc,  .grid6, .mode] ) | .[] | @sh')" > "$outfile1"
-eval "$(cat "$outfile" | jq -r 'map( select(.mode == "SSB") | ["printf", "%-10s %-12s %-12s %-8s %-8s %s 16\\n", .reference, .activator, .frequency, .locationDesc,  .grid6, .mode] ) | .[] | @sh')" > "$outfile1"
+eval "$(cat "$outfile" | jq -r 'map( ["printf", "%-10s %-12s %-12s %-8s %-8s %s 16\\n", .reference, .activator, .frequency, .locationDesc,  .grid6, .mode] ) | .[] | @sh')" > "$outfile1"
 
 cat "$outfile1"
 
