@@ -5,10 +5,11 @@
 # utilizing Winlink & potagw@outlook.com
 # This can be done manually as described in this video https://youtu.be/yAVzdw7WonA
 # 01JULY2023 KM4ACK
+# 14JULY2023 last edit
 #####################################################################################
 
 ############################################################
-# 			               Installation			                   #
+# 		Installation			           #
 ############################################################
 # Download this script. Open the terminal,navigate to      #
 # where the script was downloaded, and run                 #
@@ -17,10 +18,20 @@
 # spot-pota uninstall                                      #
 ############################################################
 
+############################################################
+# 		Change Log			           #
+############################################################
+# Version 2 14JULY2023
+# include options for viewing spots
+# add search feature
+# add help section
+############################################################
+
+
 #set some variables
 LOGO=$HOME/Pictures/pota.png
 eval `pat env`
-VERSION=1
+VERSION=2
 
 #get call sign if pat winlink is installed
 if [ $(which pat) ]; then
@@ -91,6 +102,42 @@ elif [ "$1" = 'uninstall' ]; then
 	UNINSTALL
 fi
 
+HELP(){
+cat <<EOF > /run/user/$UID/temp_pota.txt
+View Current Spots :: will get you the list of current
+spots from the POTA website in the chosen format.
+If you choose to include comments, be aware that
+the resulting email will be larger and take longer
+to download over RF.
+
+Spot Yourself :: Use this option to post a spot
+to the POTA website with your current activation details.
+
+Search :: Use the search function to return details about
+a park. You can search by Park name to get the park number
+and grid square or search by park number to get the park name
+and grid square.
+
+Note: In each instance, a message is posted to the 
+Pat Winlink outbox. A Winlink connection must be made
+to send the request. After sending the request (View/Search)
+wait ~5 minutes and make another Winlink connection. The results
+will then be returned to your inbox.
+
+Uninstall :: If you wish to uninstall this application, open the 
+terminal and run
+spot-pota uninstall
+EOF
+
+	yad --width=700 --height=500 --text-align=left --center --title="Help" \
+	--image ${LOGO} --window-icon=${LOGO} --image-on-top --separator="|" --item-separator="|" \
+	--text-info \
+	--button=gtk-close < /run/user/$UID/temp_pota.txt
+	rm /run/user/$UID/temp_pota.txt
+	MENU
+}
+
+
 #main funtion
 MENU(){
 
@@ -98,7 +145,7 @@ MENU(){
 	CHOICE=$(yad --form --width=420 --text-align=center --center --title="POTA Spots" \
 	--image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
 	--text="POTA Spot for Winlink\r by KM4ACK Version $VERSION" \
-	--field="Select One":CB "Spot Yourself|View Current Spots" \
+	--field="Select One":CB "Spot Yourself|View Current Spots|Search|Help" \
 	--button="Exit":1 \
 	--button="Continue":2)
 	BUT=$?
@@ -121,7 +168,7 @@ MENU(){
 			--field="Mode":CB "SSB|CW|FT8|FT4|DATA|PHONE" \
 			--field="Comment" "" \
 			--button="Cancel":1 \
-			--button="Spot":2)
+			--button="Post Spot":2)
 			BUT=$?
 
 			if [ ${BUT} = 1 ]; then
@@ -147,14 +194,63 @@ MENU(){
 
 		
 		"View Current Spots")
+			VIEW=$(yad --form --width=420 --text-align=center --center --title="Activation Info" --text-align=center \
+			--image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
+			--text="POTA Spot for Winlink\r by KM4ACK Version $VERSION" \
+			--field="Request Type":CB "Basic|Basic with Comments|HTML|HTML with Comments|CSV|CSV with Comments" \
+			--button="Cancel":1 \
+			--button="Post Request":2)
+			BUT=$?
+			if [ ${BUT} = 1 ]; then
+				MENU
+			elif [ ${BUT} = 252 ]; then
+				exit
+			fi
+
+			REQUEST=$(echo $VIEW | awk -F "|" '{print $1}')
+			case $REQUEST in
+				"Basic")
+					SUBJECT="VIEWSPOTS";;
+				"Basic with Comments")
+					SUBJECT="VIEWSPOTS -c";;
+				"HTML")
+					SUBJECT="VIEWSPOTS -p";;
+				"HTML with Comments")
+					SUBJECT="VIEWSPOTS -c -p";;
+				"CSV")
+					SUBJECT="VIEWSPOTS -a";;
+				"CSV with Comments")
+					SUBJECT="VIEWSPOTS -a -c";;
+			esac
+
 			#Post message to get active spots
-			echo "VIEWSPOTS" | pat compose potagw@outlook.com -s VIEWSPOTS
+			echo "VIEWSPOTS" | pat compose potagw@outlook.com -s "$SUBJECT"
 			#Give user feedback
 			yad --form --width=500 --text-align=center --center --title="Request Posted" --text-align=center \
 			--image ${LOGO} --window-icon=${LOGO} --image-on-top --separator="|" --item-separator="|" \
 			--text="POTA Spot for Winlink\r by KM4ACK Version $VERSION\r <b>Request Posted to Outbox</b>\rInitiate Winlink connection to send" \
 			--button=gtk-ok
 			MENU;;
+		"Search")
+			SEARCH=$(yad --form --width=420 --text-align=center --center --title="Activation Info" --text-align=center \
+			--image $LOGO --window-icon=$LOGO --image-on-top --separator="|" --item-separator="|" \
+			--text="POTA Spot for Winlink\r by KM4ACK Version $VERSION\r\rEnter Search Terms" \
+			--field="Park Name or Number" "" \
+			--button="Cancel":1 \
+			--button="Post Search":2)
+			BUT=$?
+
+			if [ ${BUT} = 1 ]; then
+				MENU
+			elif [ ${BUT} = 252 ]; then
+				exit
+			fi
+			SEARCH=$(echo $SEARCH | awk -F "|" '{print $1}')
+			#echo $SEARCH; exit
+			echo "$SEARCH" | pat compose potagw@outlook.com -s "SEARCH $SEARCH"
+			;;
+		"Help")
+			HELP;;
 	esac
 }
 MENU	#Call main menu
