@@ -1,0 +1,59 @@
+#!/bin/bash
+
+#script to detect if monitor is connected and
+#set the correct xorg.conf file.
+#huge shoutout to KF7VUT for his work on getting
+#this working
+#20JULY2023 KM4ACK
+
+CREATE(){
+#create the xorg.conf file 
+cat <<EOF > /tmp/xorg.conf
+Section "Device"
+  Identifier  "Configured Video Device"
+  Driver      "dummy"
+EndSection
+
+Section "Monitor"
+  Identifier "Configured Monitor"
+  HorizSync 31.5-48.5
+  VertRefresh 50-70
+EndSection
+
+Section "Screen"
+  Identifier "Default Screen"
+  Monitor "Configured Monitor"
+  Device "Configured Video Device"
+  DefaultDepth 24
+  SubSection "Display"
+    Depth 24
+    Modes "1920x1080"
+  EndSubSection
+EndSection
+
+EOF
+}
+
+x=0
+for file in /sys/class/drm/*; do
+    if [ -f $file/status ]; then
+        CK=$(grep -w connected $file/status)
+    else
+        CK=""
+    fi
+
+    if [ -n "$CK" ]; then
+        echo "monitor connected"
+        x=1
+        if [ -f /etc/X11/xorg.conf ]; then
+            mv /etc/X11/xorg.conf /etc/X11/xorg.conf.bkup
+        fi
+        break
+    fi
+done
+
+    #copy xorg.conf file
+    if [ $x = 0 ]; then
+        CREATE
+        cp /tmp/xorg.conf /etc/X11/
+    fi
