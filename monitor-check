@@ -6,6 +6,77 @@
 #this working
 #20JULY2023 KM4ACK
 
+MYPATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+
+INSTALL(){
+sudo apt update
+#set root as owner & move this script to correct dir
+chmod +x $MYPATH/monitor-check
+sudo chown root:root $MYPATH/monitor-check
+sudo mv $MYPATH/monitor-check /usr/local/bin/
+
+#install x11vnc if not found
+if ! hash x11vnc 2>/dev/null; then
+    echo "########################################"
+    echo "# x11vnc not installed. installing now #"
+    echo "########################################"
+    sudo apt install x11vnc
+fi
+
+#install video dummy driver if not found
+ck=$(apt list --installed | grep dummy)
+if [ -z "$ck" ]; then
+    echo "#############################################"
+    echo "# video dummy not installed. installing now #"
+    echo "#############################################"
+    sudo apt install xserver-xorg-video-dummy
+fi
+
+#modify /etc/systemd/system/display-manager.service
+ck=$(grep monitor-check /etc/systemd/system/display-manager.service)
+if [ -z "$ck" ]; then
+    echo "######################################"
+    echo "# modify display-manager.service now #"
+    echo "######################################"
+    sudo sed -i '/^\[Service\]/a #check for monitor\nExecStartPre=/bin/sh /usr/local/bin/monitor-check' /etc/systemd/system/display-manager.service
+fi
+echo "Installation complete. Reboot recommended"
+echo "73, de KM4ACK"
+exit 0
+}
+
+UNINSTALL(){
+clear;echo;echo
+echo "Uninstall should not be run over a VNC connection"
+echo "since the VNC server will be uninstalled and you"
+echo "will lose your connection. Press ctrl+c to stop"
+echo;echo "Will proceed in 15 seconds"
+sleep 15
+echo "###############"
+echo "removing x11vnc"
+echo "###############"
+sudo apt pruge x11vnc
+echo "###########################"
+echo "removing video dummy driver"
+echo "###########################"
+sudo apt purge xserver-xorg-video-dummy
+echo "#############################"
+echo "removing monitor check script"
+echo "#############################"
+sudo rm /usr/local/bin/monitor-check
+sudo sed -i '/#check for monitor/d' /etc/systemd/system/display-manager.service
+sudo sed -i '/ExecStartPre=\/bin\/sh \/usr*/d' /etc/systemd/system/display-manager.service
+echo "uninstall complete. reboot recommended"
+echo "73, de KM4ACK"
+exit 0
+}
+
+if [ "$1" = 'install' ]; then
+    INSTALL
+elif [ "$1" = 'uninstall' ]; then
+    UNINSTALL
+fi
+
 CREATE(){
 #create the xorg.conf file 
 cat <<EOF > /tmp/xorg.conf
