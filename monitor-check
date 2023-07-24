@@ -40,6 +40,27 @@ if [ -z "$ck" ]; then
     echo "######################################"
     sudo sed -i '/^\[Service\]/a #check for monitor\nExecStartPre=/bin/sh /usr/local/bin/monitor-check' /etc/systemd/system/display-manager.service
 fi
+echo;echo "Next you will be asked to supply a VNC password"
+echo "It is recommended that you use your sudo password"
+/usr/bin/x11vnc --storepasswd
+echo "Creating service file"
+cat <<EOF > /run/user/$UID/x11vnc.service
+[Unit]
+Description=Start X11VNC at startup.
+After=multi-user.target
+ 
+[Service]
+Type=simple
+ExecStart=/usr/bin/x11vnc -auth guess -forever -loop -noxdamage -repeat -rfbauth /home/$USER/.vnc/passwd -rfbport 5900 -shared
+ 
+[Install]
+WantedBy=multi-user.target
+EOF
+sudo mv /run/user/$UID/x11vnc.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable x11vnc.service
+sudo systemctl start x11nvc.service
+
 echo "Installation complete. Reboot recommended"
 echo "73, de KM4ACK"
 exit 0
@@ -66,6 +87,7 @@ echo "#############################"
 sudo rm /usr/local/bin/monitor-check
 sudo sed -i '/#check for monitor/d' /etc/systemd/system/display-manager.service
 sudo sed -i '/ExecStartPre=\/bin\/sh \/usr*/d' /etc/systemd/system/display-manager.service
+sudo rm /etc/systemd/system/x11vnc.service
 echo "uninstall complete. reboot recommended"
 echo "73, de KM4ACK"
 exit 0
