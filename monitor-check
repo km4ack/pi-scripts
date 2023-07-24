@@ -59,7 +59,7 @@ EOF
 sudo mv /run/user/$UID/x11vnc.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable x11vnc.service
-sudo systemctl start x11nvc.service
+sudo systemctl start x11vnc.service
 
 echo "Installation complete. Reboot recommended"
 echo "73, de KM4ACK"
