@@ -76,7 +76,7 @@ sleep 15
 echo "###############"
 echo "removing x11vnc"
 echo "###############"
-sudo apt pruge x11vnc
+sudo apt purge x11vnc
 echo "###########################"
 echo "removing video dummy driver"
 echo "###########################"
