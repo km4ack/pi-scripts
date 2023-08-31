@@ -1,0 +1,38 @@
+#!/bin/bash
+
+#script to take screen shots every "x" minutes.
+#30AUG2023 KM4ACK
+
+VERSION=1
+DIR=$HOME/Desktop/screenshots
+x=1
+
+#verify scrot is installed
+if ! hash scrot 2>/dev/null; then
+	echo "screenshot utility not found. Install with:"
+	echo "sudo apt install scrot"
+	exit 1
+fi
+
+#get time to sleep between screenshots.
+read -p "How many minutes between screenshots? " min
+
+sec=$((${min}*60))
+clear; echo; echo
+echo "#################################################################"
+echo "# Taking screenshot every $min minutes                             #"
+echo "# Waiting 15 seconds before first snapshot                      #"
+echo "# Files will be placed in screenshots directory on your desktop #"
+echo "# Press ctrl+c to stop this script                              #"
+echo "#################################################################"
+sleep 15
+
+mkdir -p $DIR
+cd $DIR
+
+while true; do
+	echo "taking snapshot $x"
+	/usr/bin/scrot
+	((x++))
+	sleep $sec
+done
