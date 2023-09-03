@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+
+import RPi.GPIO as GPIO
+import time
+import subprocess
+import sys
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(23, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+
+def my_function():
+	while True:
+		if GPIO.input(23):
+			#print("We have elect")
+			time.sleep(2)
+		else:
+			while True:
+				if not GPIO.input(23):
+					print("No elect!")
+					subprocess.call(["/home/pi/bin/notify", "Elect LOST at Home!!"])
+					time.sleep(600)
+				else:
+					print("Elect Restored")
+					Restored = ['Restored']
+					subprocess.call(["/home/pi/bin/notify", "Home Power Restored"])
+					my_function()
+				
+my_function()
+GPIO.cleanup()
