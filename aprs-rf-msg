@@ -1,0 +1,57 @@
+#!/bin/bash
+
+#This script will send APRS email.
+#Designed to be called by other scripts.
+#20200409 km4ack
+
+#Depends: kissutil. Install with: sudo apt install ax25-tools
+#Depends: direwolf
+
+MYCALL=N0CALL
+#IP address of computer running direwolf
+IP=127.0.0.1
+TOCALL=EMAIL-2
+MSG="email@domain.com ${1}"
+
+#create dir for aprs messages
+mkdir -p /run/user/$UID/aprs-messages
+FILES=/run/user/$UID/aprs-messages
+#path to store seq number text file
+SEQFILE=/run/user/$UID/seq.txt
+
+#create seq number file if needed
+if [ ! -f "$SEQFILE" ]; then
+	touch $SEQFILE
+	echo "SEQ=10" > $SEQFILE	
+fi
+
+source $SEQFILE
+
+SEQ=$(($SEQ + 1))
+echo "SEQ="$SEQ > $SEQFILE
+FIRST="$MYCALL>APX208,WIDE2-2::"
+
+#start kissutil app
+/usr/local/bin/kissutil -f $FILES -h $IP > /dev/null 2>&1 &
+sleep 2
+clear;echo;echo
+
+TOCALL=$(printf "%-9s" $TOCALL)
+echo "Sending message"
+sleep 2
+printf "${FIRST}${TOCALL}:${MSG}{$SEQ}" > $FILES/aprsmsg.$SEQ
+
+echo "please standby......."
+echo "exiting in 10 seconds"
+#wait to allow message to be sent before disconnecting
+sleep 10
+#stop kissutil app
+sudo killall kissutil
+exit 0
+
+
+
+
+
+
+
