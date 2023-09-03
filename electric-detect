@@ -4,26 +4,41 @@ import RPi.GPIO as GPIO
 import time
 import subprocess
 import sys
+import os
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(23, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
+x = 1
+hours = 0
+
+print("Will start in 10 seconds")
+time.sleep(10)
+
 def my_function():
+	os.system('clear')
+	global x
 	while True:
 		if GPIO.input(23):
-			#print("We have elect")
-			time.sleep(2)
+			print("We have elect")
+			x += 1
+			time.sleep(60)
 		else:
 			while True:
 				if not GPIO.input(23):
-					print("No elect!")
-					subprocess.call(["/home/pi/bin/notify", "Elect LOST at Home!!"])
-					time.sleep(600)
+					global hours
+					msg = "Elect Lost at Home " + str(hours) + " hours ago"
+					print(msg)
+					hours += 1
+					#subprocess.call(["/home/pi/bin/aprs-rf-msg", str(msg)])
+					print("sleeping for 1 hour")
+					time.sleep(3600)
 				else:
-					print("Elect Restored")
-					Restored = ['Restored']
-					subprocess.call(["/home/pi/bin/notify", "Home Power Restored"])
+					print("Elect Restored. send msg")
+					#subprocess.call(["/home/pi/bin/aprs-rf-msg", "Power RESTORED!!"])
+					time.sleep(10)
+					#subprocess.call(["/home/pi/bin/aprs-rf-msg", "Power RESTORED!!"])
+					time.sleep(10)
 					my_function()
-				
 my_function()
 GPIO.cleanup()
