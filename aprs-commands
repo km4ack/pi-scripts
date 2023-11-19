@@ -1,0 +1,221 @@
+#!/bin/bash
+
+#################################################
+#This script will scan for a command sent over
+#APRS and then run a set of commands on the local
+#machine where this script is installed.
+
+#In order for this script to work, direwolf MUST
+#be started by systemd. There is a sample systemd
+#file at the end of this script. It does require
+#screen to be installed. Try:
+#sudo apt install screen
+#26OCT2023 KM4ACK
+VERSION=1
+#################################################
+#This section defines variables
+
+#define path to log file created by direwolf
+LOG=/run/user/1000/direwolf.log
+
+#Operator+SSID that command messages must come from
+OP=N0CALL-7
+
+#Call that replies are sent from. Should match what's set in direwolf.conf
+MYCALL=N0CALL-14
+
+#Command operator must send to initiate commands
+#Up to 4 commands can be defined. Each command can
+#run a different set of instuctions defined in the 
+#corresponding functions below.
+CMD1=radioon
+CMD2=radiooff
+CMD3=reboot
+CMD4=na4
+
+#Delay time between scans
+delay=5
+
+#define systemd file name
+sysd_name=direwolf.service
+
+#don't change this variable unless you know you know
+TMP_FILE=/run/user/$UID/temp-scan.txt
+############################################################################################
+#command specific to KM4ACK
+sudo echo "23" > /sys/class/gpio/export
+sudo echo "out" > /sys/class/gpio/gpio23/direction
+
+
+############################################################################################
+#this function trap will run commands upon exiting the script
+FINISH() {
+	echo "23" > /sys/class/gpio/unexport
+}
+
+trap FINISH EXIT
+############################################################################################
+#These functions are the commands to run
+#when the command term is found. Command
+#term defined above as CMD 1-4
+CMD_ONE(){
+	#put commands here that the system will run when the APRS CMD is received.
+	export DISPLAY=:0 && /usr/bin/xmessage "${CMD1} Command Received" -center -print &
+	sudo echo "1" > /sys/class/gpio/gpio23/value
+}
+
+CMD_TWO(){
+	#put commands here that the system will run when the APRS CMD is received.
+	echo "recevied command two"
+	export DISPLAY=:0 && /usr/bin/xmessage "${CMD2} Command Received" -center -print &
+	sudo echo "0" > /sys/class/gpio/gpio23/value
+}
+
+CMD_THREE(){
+	#put commands here that the system will run when the APRS CMD is received.
+	export DISPLAY=:0 && /usr/bin/xmessage "${CMD3} Command Received" -center -print &
+	sleep 3
+	sudo reboot
+}
+
+CMD_FOUR(){
+	#put commands here that the system will run when the APRS CMD is received.
+	export DISPLAY=:0 && /usr/bin/xmessage "${CMD4} Command Received" -center -print &
+}
+############################################################################################
+# 		DO NOT EDIT BELOW THIS LINE UNLESS YOU KNOW YOU KNOW                       #
+############################################################################################
+
+x=1
+#This loop pauses the script until direwolf creates the log file.
+while [ ! -f ${LOG} ]; do
+	clear;echo;echo
+	echo "Waiting on direwolf to create log file"
+	echo "Log=${LOG}" 
+	sleep 1
+done
+
+############################################################################################
+#this function sends the ack for the command received.
+ack_msg(){
+	#IP address of computer running direwolf
+	IP=127.0.0.1
+	TOCALL=${OP}
+
+	#create dir for aprs messages
+	mkdir -p /run/user/$UID/aprs-messages
+	FILES=/run/user/$UID/aprs-messages
+	#path to store seq number text file
+	SEQFILE=/run/user/$UID/seq.txt
+
+	#create seq number file if needed
+	if [ ! -f "$SEQFILE" ]; then
+		touch $SEQFILE
+		echo "SEQ=10" > $SEQFILE	
+	fi
+
+	source $SEQFILE
+
+	SEQ=$(($SEQ + 1))
+	echo "SEQ="$SEQ > $SEQFILE
+	FIRST="$MYCALL>APDW01,WIDE2-2::"
+
+	#start kissutil app
+	/usr/local/bin/kissutil -f $FILES -h $IP > /dev/null 2>&1 &
+	sleep 2
+	clear;echo;echo
+
+	TOCALL=$(printf "%-9s" $TOCALL)
+	echo "Sending message"
+	sleep 2
+	printf "${FIRST}${TOCALL}:${MSG}{$SEQ}" > $FILES/aprsmsg.$SEQ
+	echo "${FIRST}${TOCALL}:${MSG}{$SEQ}"; sleep 10
+
+	echo "please standby......."
+	echo "exiting in 10 seconds"
+	#wait to allow message to be sent before disconnecting
+	sleep 10
+	#stop kissutil app
+	sudo killall kissutil
+}
+
+#This is the main portion of the script that scans
+#for the commands (CMD) from the defined operator (OP). If the 
+#command is found, the corresponding function defined above is called.
+while true; do
+	grep ${OP} ${LOG} > ${TMP_FILE}
+	while read line; do
+		ck=$(echo ${line} | grep -Ei "${CMD1}|${CMD2}|${CMD3}|${CMD4}" | awk -F "," '{print $NF}' | sed 's/{.*//')
+		case $ck in
+			${CMD1})
+			CMD_ONE
+			if [ -f $LOG ]; then
+				sudo rm $LOG
+			fi
+			systemctl --user restart ${sysd_name}
+			sleep 2
+			MSG=${CMD1}-command-received	#set message reply
+			ack_msg
+			break
+			;;
+			${CMD2})
+			CMD_TWO
+			if [ -f $LOG ]; then
+				sudo rm $LOG
+			fi
+			systemctl --user restart ${sysd_name}
+			sleep 2
+			MSG=${CMD2}-command-received	#set message reply
+			ack_msg
+			break
+			;;
+			${CMD3})
+			if [ -f $LOG ]; then
+				sudo rm $LOG
+			fi
+			systemctl --user restart ${sysd_name}
+			sleep 2
+			MSG=${CMD3}-command-received	#set message reply
+			ack_msg
+			CMD_THREE
+			break
+			;;
+			${CMD4})
+			CMD_FOUR
+			if [ -f $LOG ]; then
+				sudo rm $LOG
+			fi
+			systemctl --user restart ${sysd_name}
+			sleep 2
+			MSG=${CMD4}-command-received	#set message reply
+			ack_msg
+			break
+			;;
+		esac
+
+	done < ${TMP_FILE}
+	clear;echo;echo
+	#give user some feedback
+	echo -e "scan ${x} complete :: delay ${delay} seconds\nlog=${LOG}\nOp=${OP}\nCmd1=${CMD1}\nCmd2=${CMD2}\nCmd3=${CMD3}\nCmd4=${CMD4}"
+	sleep ${delay}
+	((x++))
+done
+############################################################################################
+#sample direwolf.service file
+sample(){
+#Requires screen. Install with: sudo apt install screen
+#######################################################################################################################
+[Unit]
+Description=Direwolf
+After=network.target
+
+[Service]
+Type=forking
+#Modify the end of the line below to fit your own needs i.e path to your configuration file
+ExecStart=/usr/bin/screen -S dw -d -m /usr/local/bin/direwolf -c /home/pi/direwolf.conf -L /run/user/1000/direwolf.log
+Restart=always
+
+[Install]
+WantedBy=default.target
+#######################################################################################################################
+}
