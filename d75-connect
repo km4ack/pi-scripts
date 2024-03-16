@@ -1,0 +1,250 @@
+#!/bin/bash
+
+#script to connect linux mint machine with Kenwood D75 radio. May possibly work with D74 but not tested.
+#26FEB2024 KM4ACK
+
+#HELP
+
+    #Before using this script, the D75 should be paired and trusted using the Bluetooth GUI app
+    #found in Linux Mint.
+
+    #KISS 12 TNC MUST be turned off for GPS. It must be turned ON for Winlink, packet, and APRS. (Function 5 on radio)
+    #Bluetooth MUST be turned on on the radio. Also, GPS must be set to Bluetooth (Menu 981) and KISS must be set to 
+    #Bluetooth (Menu 983). 
+
+    #Start by scanning for your radio so the mac address can be recorded. By clicking the "Scan" button, hcitool scan
+    #will be run in the background and look for the radio. The radio should be in "Pairing Mode" (menu item 934) before
+    #starting the scan. It takes ~20 seconds for the scan to complete and display the results. If the scan does not 
+    #see the radio, verify that Bluetooth is on and "Pairing Mode" is enabled on the radio and try again. A few 
+    #times I have seen it take four or five scans to find the radio.
+
+    #Next, start either Winlink, GPS, or YAAC.
+
+    #Winlink requires that Pat Winlink and ax25 are both installed. D75-Connect will create the connection to the radio, 
+    #start ax25, and open the Pat mailbox in a browser window.
+
+    #YAAC connection require that YAAC is installed. When connecting YAAC with the radio, the script creates a new port 
+    #(/dev/rfcomm0). YAAC will open with a custom blank "D-75" profile which can be tailored to the D75 without messing 
+    #with other YAAC configurations that may be present on your machine. D75-Connect assumes that YAAC is installed at
+    #$HOME/YAAC/YAAC.jar. If you used Build a Pi or 73Linux for the install, this should be the path. However, the
+    #YAAC path can be modified in the yaac function found below. Before using YAAC with the script, be sure that 
+    #KISS 12 is diplayed on the radio. This can be enabled with function 5 on the radio.
+    
+    #GPS requires that the gpsd package be installed on your system. Before attempting to stream the GPS data over
+    #Bluetooth, be sure that both the APRS modem & KISS 12 are not enabled. (Function 5 on the radio)
+
+    #Before closing the D75-Connect App, you should choose "Kill Connection" which will release rfcomm, stop 
+    #kissattach, and close YAAC and remove rfcomm from gpsd if configured. You should also use the "Kill Connection"
+    #when changing between Winlink, GPS, and YAAC connections.
+
+    #D75-Connect is NOT compatible with Wayland
+
+    #TROUBLESHOOTING
+    #After you have chosen a connection method, the Bluetooth icon on the radio should be blue. If it remains grey,
+    #it did not connect successfully. If the icon isn't blue after 10 seconds or so, kill the connection and try again.
+    #Only packet Winlink sessions will work with the TNC in the Kenwood D75. VARA FM WILL NOT work.
+#END HELP
+
+version=1
+mydir="$(cd "$(dirname "$0")" && pwd)"
+LOGO=/usr/share/icons/Adwaita/32x32/devices/phone-old-symbolic.symbolic.png
+pat_port=$(grep http_addr /home/$USER/.config/pat/config.json | awk -F ":" '{print $3}' | sed 's/",//')
+mac_file=${mydir}/.d75-connect.mac_addr
+mac=$(cat ${mac_file})
+
+splash(){
+    yad --width=200 --height=200 --title="D75 Connect" --timeout=2 --image ${LOGO} --text-align=center --skip-taskbar --image-on-top \
+    --wrap --no-buttons --center --window-icon=${LOGO} --undecorated --text="<big><b>\r\r\r\rD75 Connect\rversion ${version}</b></big>\rKM4ACK"
+
+}
+
+check_pw(){
+#get sudo pw
+    if [ ! -f /run/user/$UID/.d75 ]; then
+        PW=$(yad --title="sudo password" --width=400 --height=100 \
+        --image $LOGO --window-icon=$LOGO --image-on-top --text-align=center \
+        --center --form --text="Please enter your sudo password" \
+        --field="Password":H \
+        --button=gtk-ok)
+        PASS=$(echo $PW | awk -F "|" '{print $1}')
+        echo $PASS | base64 > /run/user/$UID/.d75
+        echo '#!/bin/bash' > /run/user/$UID/.d75pw
+        echo 'PASS=$(base64 -d /run/user/$UID/.d75)' >> /run/user/$UID/.d75pw
+        echo 'echo $PASS' >> /run/user/$UID/.d75pw
+        chmod +x /run/user/$UID/.d75pw
+        export SUDO_ASKPASS=/run/user/$UID/.d75pw
+        #reset sudo timer to prevent false positive
+        sudo -k
+        echo "Checking SUDO credentials....standby"
+        sudo -A touch /run/user/$UID/sutest 2>&1 </dev/null
+
+            if [ $? = 1 ]; then
+            yad --title="Wrong Password" --width=400 --height=100 \
+            --image $LOGO --window-icon=$LOGO --image-on-top --text-align=center \
+            --center --form --text="Wrong Password. Can't continue'" \
+            --button="Exit"
+            rm /run/user/$UID/.d75 /run/user/$UID/.d75pw
+            exit
+            else 
+            echo "Credentials check out....continuing"
+            fi
+    else
+        export SUDO_ASKPASS=/run/user/$UID/.d75pw
+    fi
+}
+
+
+MAIN(){
+    #MAIN MENU
+    MENU=$(yad --image $LOGO --window-icon=$LOGO --form --width=400 --text="<b>D75 Connect v${version}</b>\rMAC = ${mac}" --text-align=center --center --title="D75 Connect" \
+    --button="Winlink":2 \
+    --button="YAAC":5 \
+    --button="GPS":3 \
+    --button="Kill Connection":4 \
+    --button="Scan":6 \
+    --button=Quit:1 )
+    BUT=$?
+
+    case $BUT in
+        1) quit ;;
+        2) pair_winlink ;;
+        3) pair_gps ;;
+        4) kill_connection ;;
+        5) yaac ;;
+        6) scan ;;
+        252) quit ;;
+    esac
+}
+
+check(){
+    #function verifies we have a mac address to work with
+    if [ -z ${mac} ]; then
+        yad --title="D75 Connect" --width=400 --height=100 \
+        --image $LOGO --window-icon=$LOGO --window-icon=$LOGO --image-on-top --text-align=center \
+        --center --form --text="\r\r\r\rNo Device Defined\rRun Scan Before Connecting" \
+        --button=gtk-ok
+        if [ $? = 252 ]; then
+            exit
+        fi
+        MAIN
+    fi
+}
+
+scan(){
+    #function scans for device and records mac address chosen.
+    yad --title="D75 Connect" --width=400 --height=100 \
+    --image $LOGO --window-icon=$LOGO --window-icon=$LOGO --image-on-top --text-align=center \
+    --center --form --text="\r\r\r\rPut radio in Pairing mode before clicking ok\r<b>Menu 934</b>" \
+    --button=gtk-ok
+    if [ $? = 252 ]; then
+        MAIN
+    fi
+    file=/run/user/$UID/hci-scan.tmp
+    #give user some feedback
+    yad --center --timeout=10 --timeout-indicator=top --no-buttons --height=100 --width=300 \
+    --title="Scanning" --image $LOGO --window-icon=$LOGO --image-on-top \
+    --text="Scanning for device. This takes about 20 seconds to complete. Devices will appear after scan is complete." &
+    hcitool scan > ${file}
+    mac=$(tail -n +2 ${file} | yad --title="D75 Connect" --list --column=Devices --image $LOGO \
+    --window-icon=$LOGO --height=200 --width=300 --center --text="Select your device" \
+    --button=gtk-ok)
+    #echo $?; exit
+    #check if "x" was pressed
+    if [ $? = 252 ]; then
+        exit;
+    fi
+        mac=$(echo $mac | awk '{print $1}')
+        echo ${mac} | tee ${mac_file}
+        MAIN
+}
+
+yaac(){
+    #function pairs with radio and starts YAAC with d75 profile
+    check
+    sudo -A rfcomm bind /dev/rfcomm0 ${mac} 2
+    sleep 1
+    java -jar $HOME/YAAC/YAAC.jar -profile d75 &
+    sleep 2
+    yaac_pid=$(ps aux | grep -i yaac.jar| awk '{print $2}' | tail -2 | head -1)
+    MAIN
+}
+
+quit(){
+    #function checks for active connection before exit
+    if [[ -n `ls /dev/ | grep rfcomm` ]]; then
+        yad --title="D75 Connect" --width=400 --height=100 \
+            --image $LOGO --window-icon=$LOGO --image-on-top --text-align=center \
+            --center --form --text="\r\r\r\rConnection Active!\rKill connection before exit?" \
+            --button=Kill:1 \
+            --button=Exit:2
+        if [ $? = 1 ]; then
+            echo "killing connection"
+            sudo -A killall kissattach
+            kill ${yaac_pid}
+            sudo -A rfcomm release all
+            echo "73, QRT"; exit
+        else
+            echo "73, QRT"; exit
+        fi
+    else
+        echo "73, QRT"; exit
+    fi
+}
+
+pair_winlink(){
+    #function pairs with radio and starts Pat Winlink
+    check
+    yad --title="D75 Connect" --width=400 --height=100 \
+        --image $LOGO --window-icon=$LOGO --image-on-top --text-align=center \
+        --center --form --text="\r\r\r\rBe sure Bluetooth and TNC is enabled\rThen press ok" \
+        --button=gtk-ok
+    sudo -A rfcomm bind /dev/rfcomm0 ${mac} 2
+    sudo -A kissattach /dev/rfcomm0 wl2k
+    sudo -A kissparms -c 1 -p wl2k
+    export DISPLAY=:0 && xdg-open http://127.0.0.1:$pat_port > /dev/null 2>&1 &
+    MAIN
+}
+
+pair_gps(){
+    #function pairs with radio and updates /etc/default/gpsd file for GPS over rfcomm0
+    check
+    yad --title="D75 Connect" --width=400 --height=100 \
+        --image $LOGO --window-icon=$LOGO --image-on-top --text-align=center \
+        --center --form --text="\r\r\r\rBe sure Bluetooth AND the TNC is <b>disabled</b>\rThen press ok" \
+        --button=gtk-ok
+    sudo -A rfcomm bind /dev/rfcomm0 ${mac} 2
+
+    cp /etc/default/gpsd /run/user/$UID
+
+    sed -i "s|DEVICES=.*|DEVICES=\"/dev/rfcomm0\"|" /run/user/$UID/gpsd
+
+    sudo -A cp /run/user/$UID/gpsd /etc/default/
+
+    sudo -A systemctl restart gpsd
+
+    yad --center --height="300" --width="300" --form --separator="|" --item-separator="|" --title="GPS" \
+    --image $LOGO --window-icon=$LOGO --image-on-top \
+    --text="\r\r\r\r\r<b><big>GPS had been updated</big></b>" \
+    --button="OK":1
+    MAIN
+}
+
+kill_connection(){
+    #function kills existing connection(s)
+    kill ${yaac_pid}
+    sudo -A killall kissattach
+    sudo -A rfcomm release all
+    #next lines are needed to clear rfcomm from gpsd config file so that the GPS
+    #will not try to take over when we enable a TNC connection
+    if [[ -n `grep rfcomm /etc/default/gpsd` ]]; then
+        sed -i "s|DEVICES=.*|DEVICES=\"/dev/rfcomm0\"|" /run/user/$UID/gpsd
+        sudo -A cp /run/user/$UID/gpsd /etc/default/
+        sudo -A systemctl restart gpsd
+    fi
+    MAIN
+}
+
+splash      #show splash screen
+check_pw    #check for sudo pw
+check       #check for mac address
+MAIN        #call main menu
