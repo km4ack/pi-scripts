@@ -2,8 +2,11 @@
 
 #script to connect linux mint machine with Kenwood D75 radio. May possibly work with D74 but not tested.
 #26FEB2024 KM4ACK
+#27MARCH2024 last edit
 
 #HELP
+
+    #To create a menu shortcut, run : "d75-connect menu"
 
     #Before using this script, the D75 should be paired and trusted using the Bluetooth GUI app
     #found in Linux Mint.
@@ -45,7 +48,8 @@
     #Only packet Winlink sessions will work with the TNC in the Kenwood D75. VARA FM WILL NOT work.
 #END HELP
 
-version=1
+version=2
+#version 2 added menu shortcut creation
 mydir="$(cd "$(dirname "$0")" && pwd)"
 LOGO=/usr/share/icons/Adwaita/32x32/devices/phone-old-symbolic.symbolic.png
 pat_port=$(grep http_addr /home/$USER/.config/pat/config.json | awk -F ":" '{print $3}' | sed 's/",//')
@@ -91,6 +95,21 @@ check_pw(){
     else
         export SUDO_ASKPASS=/run/user/$UID/.d75pw
     fi
+}
+
+shortcut(){
+    cat <<EOF>/run/user/$UID/d75-connect.desktop
+[Desktop Entry]
+Name=D75 Connect
+GenericName=D75-Connect
+Comment=Helper app for connecting D75 to Linux Mint
+Exec=$HOME/bin/d75-connect
+Icon=/usr/share/icons/Adwaita/32x32/devices/phone-old-symbolic.symbolic.png
+Terminal=false
+Type=Application
+Categories=HamRadio;
+EOF
+sudo -A mv /run/user/$UID/d75-connect.desktop /usr/local/share/applications/
 }
 
 
@@ -244,7 +263,11 @@ kill_connection(){
     MAIN
 }
 
-splash      #show splash screen
 check_pw    #check for sudo pw
+if [ "$1" = 'menu' ]; then
+    shortcut
+    echo "menu shortcut created"; exit
+fi
+splash      #show splash screen
 check       #check for mac address
 MAIN        #call main menu
