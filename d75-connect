@@ -197,11 +197,7 @@ quit(){
             --button=Kill:1 \
             --button=Exit:2
         if [ $? = 1 ]; then
-            echo "killing connection"
-            sudo -A killall kissattach
-            kill ${yaac_pid}
-            sudo -A rfcomm release all
-            echo "73, QRT"; exit
+            kill_connection
         else
             echo "73, QRT"; exit
         fi
@@ -256,7 +252,7 @@ kill_connection(){
     #next lines are needed to clear rfcomm from gpsd config file so that the GPS
     #will not try to take over when we enable a TNC connection
     if [[ -n `grep rfcomm /etc/default/gpsd` ]]; then
-        sed -i "s|DEVICES=.*|DEVICES=\"/dev/rfcomm0\"|" /run/user/$UID/gpsd
+        sed -i "s|DEVICES=.*|DEVICES=\"/dev/\"|" /run/user/$UID/gpsd
         sudo -A cp /run/user/$UID/gpsd /etc/default/
         sudo -A systemctl restart gpsd
     fi
