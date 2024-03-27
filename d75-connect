@@ -229,7 +229,7 @@ pair_gps(){
     check
     yad --title="D75 Connect" --width=400 --height=100 \
         --image $LOGO --window-icon=$LOGO --image-on-top --text-align=center \
-        --center --form --text="\r\r\r\rBe sure Bluetooth AND the TNC is <b>disabled</b>\rThen press ok" \
+        --center --form --text="\r\r\r\rBe sure Bluetooth is enabled and the TNC is <b>disabled</b>\rThen press ok" \
         --button=gtk-ok
     sudo -A rfcomm bind /dev/rfcomm0 ${mac} 2
 
