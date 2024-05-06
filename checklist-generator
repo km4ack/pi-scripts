@@ -2,10 +2,14 @@
 
 #Checklist generator script
 #14OCT2022 KM4ACK
+#05MAY2024 KM4ACK
+#V2 
+    #add weight calculation
+    #update help
 
 MYPATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 LISTS=$HOME/.config/checklists
-VERSION=1.0
+VERSION=2.0
 LOGO=/usr/share/icons/HighContrast/48x48/stock/gtk-apply.png
 
 export MYPATH
@@ -238,8 +242,32 @@ OUTPUT(){
 				#echo "" >> $LIST_NAME
 				cat ${TEMP_DIR}/${line}.txt >> $LIST_NAME
 			fi
-		fi
+        #the following loop added in version 2 to calculate weight of equipement
+        while read line; do
+	        var=$(echo $line | awk -F "," '{print $2}')
+	        weights+=($var)
+        done < ${TEMP_DIR}/${line}.txt
+
+		 fi
 	done <${LISTS}/category
+
+#added in version 2 to calculate weights. Also see nested loop above
+#add weights
+for i in ${weights[@]}; do
+    ounces=$[$ounces+$i]
+done
+
+#output if we have data
+if [ -n ""${ounces}"" ]; then
+	if [ ${ounces} -gt 0 ]; then
+        echo "" >> $LIST_NAME
+        echo "####Equipment Weight####" >> $LIST_NAME
+		echo "Ounces = $ounces" >> $LIST_NAME
+		pounds=$(echo ${ounces}/16 | bc -l | cut -b1-4)
+		echo "Pounds = $pounds" >> $LIST_NAME
+	fi
+fi
+#End Weight calculation
 
 	#create html file from markdown text
 	#both files output to desktop
@@ -282,6 +310,14 @@ by exporting your current config files and then
 importing the config file on the new machine. The export
 feature is also a handy way to backup your config files
 for the Checklist Generator.
+
+Equipement Weight
+If you wish to calculate the weight of equipment, put the
+weight on the line after the equipment name seperated with 
+a comma. Example:
+Icom-705,15
+Note: Equipment weight should be noted in ounces. Total ounces
+and pound calculation will be put at the bottom of the checklist.
 EOF
 
 	INTRO=$(yad --width=600 --height=250 --text-align=center --center --title="Checklist Generator" --show-uri \
@@ -352,4 +388,3 @@ export -f IMPORT_CONFIG
 
 MAIN
 exit
-
