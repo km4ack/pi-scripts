@@ -2,14 +2,16 @@
 
 #Checklist generator script
 #14OCT2022 KM4ACK
-#05MAY2024 KM4ACK
-#V2 
+#07MAY2024 KM4ACK
+#V2.1
+    #eliminate weights on individual item
+#V2.0 
     #add weight calculation
     #update help
 
 MYPATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 LISTS=$HOME/.config/checklists
-VERSION=2.0
+VERSION=2.1
 LOGO=/usr/share/icons/HighContrast/48x48/stock/gtk-apply.png
 
 export MYPATH
@@ -240,7 +242,7 @@ OUTPUT(){
 				echo "" >> $LIST_NAME
 				echo "###${line}###" >> $LIST_NAME
 				#echo "" >> $LIST_NAME
-				cat ${TEMP_DIR}/${line}.txt >> $LIST_NAME
+				cat ${TEMP_DIR}/${line}.txt | awk -F "," '{print $1}' >> $LIST_NAME
 			fi
         #the following loop added in version 2 to calculate weight of equipement
         while read line; do
