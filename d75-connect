@@ -51,7 +51,7 @@
 version=2
 #version 2 added menu shortcut creation
 mydir="$(cd "$(dirname "$0")" && pwd)"
-LOGO=/usr/share/icons/Adwaita/32x32/devices/phone-old-symbolic.symbolic.png
+LOGO=/usr/share/icons/Adwaita/symbolic/devices/phone-old-symbolic.svg
 pat_port=$(grep http_addr /home/$USER/.config/pat/config.json | awk -F ":" '{print $3}' | sed 's/",//')
 mac_file=${mydir}/.d75-connect.mac_addr
 mac=$(cat ${mac_file})
