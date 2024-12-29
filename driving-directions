@@ -1,0 +1,133 @@
+#!/bin/bash
+
+#script to pull driving directions over RF with Winlink
+#20DEC2024 KM4ACK
+version=1
+
+####NOTE#####
+#This script relies on https://gdir.telae.net/index.html and saildocs.com
+#If either site is down, this script will NOT work
+####END NOTE####
+
+#verify YAD is installed
+if ! hash yad 2>/dev/null; then
+	echo "YAD required but not installed"
+  echo "Hint: sudo apt install yad"
+  exit 1
+fi
+
+gps(){
+#get gps coordinates
+  yad --width=200 --height=200 --title="KM4ACK Driving Directions v${version}" --timeout=3 --text-align=center --skip-taskbar --image-on-top \
+  --wrap --no-buttons --center --undecorated --text="<big><b>\r\r\r\rGetting GPS Data</b></big>" &
+  temp_gps=/run/user/$UID/temp_gps.txt
+  gpxlogger -e sockets > ${temp_gps} &
+  CGPSPID=$(echo $!)
+  sleep 3
+  kill $CGPSPID
+  lat=$(grep "<trkpt lat=" ${temp_gps} | head -1 | awk -F "=" '{print $2}' | sed 's/" lon//;s/"//')
+  long=$(grep "<trkpt lat=" ${temp_gps} | head -1 | awk -F "=" '{print $3}'| sed 's/">//;s/"//')
+  if [ -z ${lat} ] || [ -z ${long} ]; then
+      yad --width=200 --height=200 --title="KM4ACK Driving Directions" --timeout=2 --text-align=center --skip-taskbar --image-on-top \
+    --wrap --no-buttons --center --undecorated --text="<big><b>\r\r\r\rNo data from GPS\rFalling back to manual entry</b></big>"
+    input
+  fi
+
+  #get destination info
+  destin_addr=$(yad --center --form --editable --height=200 --width=500 --title="KM4ACK Driving Directions v${version}" \
+  --field="Destination Street Address" \
+  --field="Destination City" \
+  --field="Destination State" \
+  --field="Destination Zip" \
+  --button="Cancel":1 \
+  --button="Next":2)
+  but=$?
+  if [ ${but} = 1 ]; then
+    menu
+  elif [ ${but} = 252 ]; then
+    exit
+  fi
+
+  #set destination variables
+  destin_street=$(echo ${destin_addr} | awk -F "|" '{print $1}' | sed 's/ /+/g')
+  destin_city=$(echo ${destin_addr} | awk -F "|" '{print $2}' | sed 's/ /+/g')
+  destin_st=$(echo ${destin_addr} | awk -F "|" '{print $3}' | sed 's/ /+/g')
+  destin_zip=$(echo ${destin_addr} | awk -F "|" '{print $4}' | sed 's/ /+/g')
+
+  #set message to be sent
+  msg="https://gdir.telae.net/gdir/?country=us&origin=${lat}+${long}&destination=${destin_street}+${destin_city}+${destin_st}+${destin_zip}&mode_of_travel=driving"
+  send_msg
+}
+
+input(){
+  #get user input
+  origin_addr=$(yad --center --form --editable --height=200 --width=500 --title="KM4ACK Driving Directions v${version}" \
+  --field="Origin Street Address" \
+  --field="Origin City" \
+  --field="Origin State" \
+  --field="Origin Zip" \
+  --button="Cancel":1 \
+  --button="Next":2)
+  but=$?
+  if [ ${but} = 1 ]; then
+    menu
+  elif [ ${but} = 252 ]; then
+    exit
+  fi
+
+  destin_addr=$(yad --center --form --editable --height=200 --width=500 --title="KM4ACK Driving Directions v${version}" \
+  --field="Destination Street Address" \
+  --field="Destination City" \
+  --field="Destination State" \
+  --field="Destination Zip" \
+  --button="Cancel":1 \
+  --button="Next":2)
+  but=$?
+  if [ ${but} = 1 ]; then
+    menu
+  elif [ ${but} = 252 ]; then
+    exit
+  fi
+
+  #set origin variables
+  origin_street=$(echo ${origin_addr} | awk -F "|" '{print $1}' | sed 's/ /+/g')
+  origin_city=$(echo ${origin_addr} | awk -F "|" '{print $2}' | sed 's/ /+/g')
+  origin_st=$(echo ${origin_addr} | awk -F "|" '{print $3}' | sed 's/ /+/g')
+  origin_zip=$(echo ${origin_addr} | awk -F "|" '{print $4}' | sed 's/ /+/g')
+
+  #set destination variables
+  destin_street=$(echo ${destin_addr} | awk -F "|" '{print $1}' | sed 's/ /+/g')
+  destin_city=$(echo ${destin_addr} | awk -F "|" '{print $2}' | sed 's/ /+/g')
+  destin_st=$(echo ${destin_addr} | awk -F "|" '{print $3}' | sed 's/ /+/g')
+  destin_zip=$(echo ${destin_addr} | awk -F "|" '{print $4}' | sed 's/ /+/g')
+
+  #set message to be sent
+  msg="https://gdir.telae.net/gdir/?country=us&origin=${origin_street}+${origin_city}+${origin_st}+${origin_zip}&destination=${destin_street}+${destin_city}+${destin_st}+${destin_zip}&mode_of_travel=driving"
+  send_msg
+}
+
+send_msg(){
+  #post message and notify user
+  echo "${msg}" | pat compose query@saildocs.com -s "REQUEST"  
+  yad --width=200 --height=200 --title="KM4ACK Driving Directions v${version}" --timeout=4 --text-align=center --skip-taskbar --image-on-top \
+  --wrap --no-buttons --center --undecorated --text="<big><b>\r\r\rMessage\rposted\rto Pat</b></big>\rGo to Pat Winlink\rto send message"
+  menu
+
+}
+
+menu(){
+  ans==$(yad --center --form --editable --height=200 --width=500 --title="KM4ACK Driving Directions v${version}" --text-align=center \
+  --text="\r\r<b>Would you like to use the GPS\rto determine your starting location?</b>" \
+  --button="Use GPS":1 \
+  --button="Don't use GPS":2)
+  but=$?
+
+  if [ ${but} = 252 ]; then
+    exit
+  elif [ ${but} = 1 ]; then
+    gps
+  elif [ ${but} = 2 ]; then
+    input
+  fi
+}
+menu
