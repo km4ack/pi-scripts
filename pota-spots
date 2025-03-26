@@ -113,39 +113,30 @@ elif [ "$1" = 'uninstall' ]; then
     uninstall
 fi
 
+getTempFile() {
+    tempfoo=`basename $0`
+    TMPFILE=`mktemp -q /tmp/${tempfoo}.XXXXXX`
+    if [ $? -ne 0 ]; then
+        echo "$0: Can't create temp file, exiting..."
+        exit 1
+    fi
+    echo "$TMPFILE"
+}
 ###############
 # MAIN SCRIPT #
 ###############
 url='https://api.pota.app/spot/activator'
-outfile=/run/user/$UID/spots.json
-outfile1=/run/user/$UID/temp.out.txt
+outfile=$(getTempFile)
+outfile1=$(getTempFile)
 
-curl -s $url > $outfile 
-n=$(cat $outfile | jq '. [] | {reference: .reference, activator: .activator, freq: .frequency}' | jq '. .reference' | wc -l)
-let n=$(($n - 1))
+curl -s "$url" > "$outfile"
+n=$(cat "$outfile" | jq '.|length')
 
-rm -f $outfile1
-echo "sorting data thru jq"
-x=1
-for s in $(seq 0 $n); do
-  echo "processing record $x"
-  ref=$(cat $outfile | jq ". [$s] | .reference")
-  activator=$(cat $outfile | jq ". [$s] | .activator")
-  freq=$(cat $outfile | jq ". [${s}] | .frequency")
-  loc=$(cat $outfile | jq ". [${s}] | .locationDesc")
-  grid=$(cat $outfile | jq ". [${s}] | .grid6")
-  mode=$(cat $outfile | jq ". [${s}] | .mode")
+printf "Found %s records\n" $n
 
-  if [ "${mode}" = '""' ]; then
-    mode='n/a'
-  fi
+# eval "$(cat "$outfile" | jq -r 'map( ["printf", "%-10s %-12s %-12s %-8s %-8s %s 16\\n", .reference, .activator, .frequency, .locationDesc,  .grid6, .mode] ) | .[] | @sh')" > "$outfile1"
+eval "$(cat "$outfile" | jq -r 'map( ["printf", "%-10s %-12s %-12s %-8s %-8s %s 16\\n", .reference, .activator, .frequency, .locationDesc,  .grid6, .mode] ) | .[] | @sh')" > "$outfile1"
 
-  printf "%-10s %-12s %-12s %-8s %-8s %s 16\n" ${ref} ${activator} ${freq} ${mode} ${loc} ${grid} | tr -d '"' >> $outfile1
-  ((x++))
-done
+cat "$outfile1"
 
-mv $outfile1 /run/user/$UID/spots.txt
-rm -f spots.json
-
-
-
+mv "$outfile1" /run/user/$UID/spots.txt
