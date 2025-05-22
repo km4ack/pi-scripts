@@ -5,6 +5,7 @@
 #a new release of BAP.
 
 #updated 07MARCH2023
+#deb file updated 22MAY2025
 
 
 arm32=https://www.dropbox.com/s/nue1dculgfay7s1/GridTracker-1.23.0206-linux-arm32.tar.gz
@@ -13,4 +14,6 @@ arm64=https://www.dropbox.com/s/c8ltibm4hfos1rz/GridTracker-1.23.0206-linux-arm6
 
 nwjs=https://www.dropbox.com/s/6zq46mrg2t2nftp/nwjs-downloader_0.68.1-1_all.deb
 
-deb=https://www.dropbox.com/s/9mgao434473zgcr/gridtracker_1.23.0206_all.deb
+#deb=https://www.dropbox.com/s/9mgao434473zgcr/gridtracker_1.23.0206_all.deb
+
+deb=https://download2.gridtracker.org/GridTracker2-2.250507.0-amd64.deb
