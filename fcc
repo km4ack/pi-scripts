@@ -1,18 +1,31 @@
 #!/bin/bash
 
-#offline call sign lookup
-#11JULY2025
+#offline call lookup
+#11JULY2025 km4ack
 
 CALL=$1
 dir=$HOME/.local/share/fcc_database/
 dl=${dir}dl_date
 AM=${dir}AM.dat
 EN=${dir}EN.dat
+today=$(date +%d-%b-%Y)
 version=1.0
 
 if [ -f ${dl} ]; then
   source ${dl}
 fi
+
+PURGE(){
+  if [ -d ${dir}/old ]; then
+    echo "purging old DB files"
+    rm -rf ${dir}old
+    echo "purge complete"
+    exit
+  else
+    echo "no old db files found"
+    exit
+  fi
+}
 
 DOWNLOAD(){
   mkdir -p ${dir}
@@ -25,7 +38,6 @@ DOWNLOAD(){
   unzip l_amat.zip
   rm l_amat.zip
   rm CO.dat counts HD.dat HS.dat LA.dat SC.dat SF.dat
-  today=$(date +%d-%b-%Y)
   echo last_download=${today} > ${dl}
   echo;echo;echo "usage: fcc <call sign>"
   exit
@@ -62,6 +74,8 @@ LOOKUP(){
       full_class=General;;
     E)
       full_class=Extra;;
+    *)
+      full_class=unknown;;
   esac
   name=$(echo ${en_result} | awk -F "|" '{print $8}')
   street=$(echo ${en_result} | awk -F "|" '{print $16}')
@@ -72,10 +86,10 @@ LOOKUP(){
 }
 
 if [ -z $1 ]; then
-  echo "usage: fcc <call sign>"
-  echo "or"
-  echo "usage: fcc download"
-  echo "to download latest database"
+  echo "usage:"
+  echo "fcc <call sign>     #get data for <call sign>"
+  echo "fcc download        #download latest database"     
+  echo "fcc purge           #purge old archives"
   exit 1
 fi
 
@@ -83,10 +97,14 @@ if [ $1 = "download" ]; then
   DOWNLOAD
 fi
 
+if [ $1 = "purge" ]; then
+  PURGE
+fi
+
 if [ ! -d ${dir} ]; then
   echo "ERROR::Database not found!"
   echo "Download database with:"
   echo "fcc download"
-  exit
+  exit 1
 fi
 LOOKUP
