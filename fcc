@@ -63,7 +63,7 @@ OUTPUT(){
 }
 
 LOOKUP(){
-  am_result=$(grep -iw ${CALL} ${AM} | head -1)
+  am_result=$(grep -iw ${CALL} ${AM} | tail -1)
   en_result=$(grep -iw ${CALL} ${EN} | tail -1)
 
   class=$(echo ${am_result} | awk -F "|" '{print $6}')
