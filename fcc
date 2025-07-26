@@ -2,7 +2,7 @@
 
 #FCC Database Lookup Offline
 #11JULY2025 km4ack
-#12JULY2025 last edit
+#26JULY2025 last edit
 
 #script will download the FCC amateur database of call signs
 #allowing to user to access the info offline
@@ -10,6 +10,8 @@
 #Script can be automated using crontab to download the database
 #Hint: 0 6 * * * /path/to/file/fcc download 
 
+#version 3 changes:
+#add grid square lookup if data file available
 #version 2 changes:
 #add logging to mylog.txt
 #add verbose option. usage: fcc <call sign> -v
@@ -22,7 +24,7 @@ AM=${dir}AM.dat
 EN=${dir}EN.dat
 today=$(date +%d-%b-%Y)
 mylog=$HOME/Documents/mylog.txt
-version=2.0
+version=3.0
 
 declare -u CALL=${CALL}
 
@@ -74,6 +76,7 @@ OUTPUT(){
     read -p "Call sign or q to quit: " CALL
 
     if [ "${CALL}" = "q" ] || [ ${CALL} = "Q" ]; then
+      echo "Station QRT, 73!"
       exit
     fi
     LOOKUP
@@ -88,6 +91,9 @@ OUTPUT(){
     echo "${full_class} class"
     echo ${street}
     echo "${city}, ${state} ${zip}"
+    if [ -n "${grid}" ]; then
+      echo "${grid}"
+    fi
     if [ ${CALL} = "KM4ACK" ]; then
       echo "https://www.youtube.com/@KM4ACK"
     fi
@@ -95,6 +101,7 @@ OUTPUT(){
     read -p "Call sign or (q)uit (v)erbose: " ans
 
     if [ "${ans}" = "q" ] || [ ${ans} = "Q" ]; then
+      echo "Station QRT, 73!"
       exit
     fi
 
@@ -125,7 +132,10 @@ LOOKUP(){
   street=$(echo ${en_result} | awk -F "|" '{print $16}')
   city=$(echo ${en_result} | awk -F "|" '{print $17}')
   state=$(echo ${en_result} | awk -F "|" '{print $18}')
-  zip=$(echo ${en_result} | awk -F "|" '{print $19}')
+  zip=$(echo ${en_result} | awk -F "|" '{print $19}' | cut -b1-5)
+  if [ -d $HOME/bin/grid-lookup ]; then
+    grid=$($HOME/bin/grid-lookup/grid-lookup ${zip})
+  fi
   OUTPUT
 }
 
