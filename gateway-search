@@ -1,0 +1,39 @@
+#!/bin/bash
+
+#search gateway list for keywords
+
+vara=${HOME}/patmenu3/data/vara-list
+packet=${HOME}/patmenu3/data/ardop-list
+ans=$1
+search=$2
+
+if [ -z $1 ] || [ -z $2 ]; then
+  echo "usage: gateway-search <band> <search term>"
+  echo "available bands - 20,30,40,80,varafm,pkt"
+  exit
+fi
+
+case ${ans} in
+  20) file=${vara}/20mvaralist.txt ;;
+  30) file=${vara}/30mvaralist.txt ;;
+  40) file=${vara}/40mvaralist.txt ;;
+  80) file=${vara}/80mvaralist.txt ;;
+  VARAFM | varafm) file=${vara}/varafm.txt;;
+  PKT | pkt) file=${packet}/packet.txt;;
+  *) echo "invalid band choice. Choose 20, 40, 80, varafm, pkt"; exit 1;;
+esac
+
+clear;echo;echo
+echo "#########################"
+echo "# KM4ACK Gateway Search #"
+echo "#########################"
+echo "# Search term = ${search} #"
+echo "#########################"
+echo "  Call      Grid   KM    Azimuth"
+echo "--------------------------------"
+ck=$(grep -i "${search}" ${file})
+if [ -z "${ck}" ]; then
+  echo "Nothing found for \"${search}\""; exit
+else
+  grep -i "${search}" ${file}; exit
+fi
