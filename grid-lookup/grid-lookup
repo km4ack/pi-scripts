@@ -1,0 +1,14 @@
+#!/bin/bash
+
+zip=$1
+
+if [ -z "$1" ]; then
+  read -p "zip code? " zip
+fi
+latlong=$(grep -i ^${zip} $HOME/bin/grid-lookup/zip-to-lat.csv)
+lat=$(echo ${latlong} | awk -F "," '{print $2}')
+long=$(echo ${latlong} | awk -F "," '{print $3}')
+
+grid=$($HOME/bin/grid-lookup/latlong-to-grid ${lat} ${long} | cut -b1-4)
+
+echo "Grid - ${grid}"

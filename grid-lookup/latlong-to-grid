@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Check for correct number of arguments
+if [ "$#" -ne 2 ]; then
+    echo "Usage: $0 <latitude> <longitude>"
+    exit 1
+fi
+
+lat=$1
+lon=$2
+
+# Adjust longitude and latitude to positive values
+adj_lon=$(echo "$lon + 180" | bc -l)
+adj_lat=$(echo "$lat + 90" | bc -l)
+
+# Field letters (A-R)
+A=$(echo "$adj_lon / 20" | bc)
+B=$(echo "$adj_lat / 10" | bc)
+
+# Square digits (0-9)
+C=$(echo "($adj_lon % 20) / 2" | bc)
+D=$(echo "($adj_lat % 10) / 1" | bc)
+
+# Subsquare letters (a-x)
+lon_remainder=$(echo "$adj_lon - ($A * 20) - ($C * 2)" | bc -l)
+lat_remainder=$(echo "$adj_lat - ($B * 10) - ($D * 1)" | bc -l)
+
+E=$(echo "$lon_remainder * 60 / 5" | bc)
+F=$(echo "$lat_remainder * 60 / 2.5" | bc)
+
+# Convert to appropriate characters
+A_char=$(printf "\\$(printf '%03o' $((A + 65)) )")
+B_char=$(printf "\\$(printf '%03o' $((B + 65)) )")
+E_char=$(printf "\\$(printf '%03o' $((E + 97)) )")
+F_char=$(printf "\\$(printf '%03o' $((F + 97)) )")
+
+# Output Maidenhead grid locator
+echo "${A_char}${B_char}${C}${D}${E_char}${F_char}"
+
